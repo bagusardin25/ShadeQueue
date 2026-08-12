@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --color-canvas: #f3f1e8;
+  --color-panel: #fffdf7;
+  --color-panel-raised: #f8f6ef;
+  --color-ink: #142925;
+  --color-muted-ink: #596963;
+  --color-line: #d7d4c7;
+  --color-action: #0e6159;
+  --color-action-strong: #084c46;
+  --color-heat: #c2462f;
+  --color-sun: #e2a52b;
+  --color-focus: #d9482f;
+  --color-danger: #a63225;
+  --font-sans: "Aptos", "Segoe UI Variable", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-width: 320px;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: #f2cf74;
+    color: #142925;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 0.75rem;
+  z-index: 100;
+  transform: translateY(-180%);
+  border-radius: 0.375rem;
+  background: var(--color-ink);
+  color: white;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.field-control {
+  min-height: 2.75rem;
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 0.375rem;
+  background: var(--color-panel);
+  color: var(--color-ink);
+  padding: 0.625rem 0.75rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.field-control:hover {
+  border-color: #8d9a94;
+}
+
+.field-control:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.field-control[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+input[type="range"] {
+  accent-color: var(--color-action);
+}
+
+.app-link {
+  color: var(--color-action-strong);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.app-link:hover {
+  text-decoration: underline;
+}
+
+.app-link:focus-visible {
+  border-radius: 0.25rem;
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.metric-numeral {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.thermal-rule {
+  height: 0.1875rem;
+  background: var(--color-heat);
+}
+
+.skeleton {
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+  background: #e2dfd4;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.maplibregl-map {
+  font-family: var(--font-sans);
+}
+
+.maplibregl-ctrl-group {
+  border: 1px solid var(--color-line) !important;
+  border-radius: 0.375rem !important;
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl button {
+  width: 2.75rem !important;
+  height: 2.75rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

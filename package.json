@@ -1,0 +1,15 @@
+{
+  "name": "shadequeue",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @shadequeue/web run dev",
+    "lint": "npm --workspace @shadequeue/web run lint",
+    "typecheck": "npm --workspace @shadequeue/web run typecheck",
+    "test": "npm --workspace @shadequeue/web run test",
+    "build": "npm --workspace @shadequeue/web run build"
+  }
+}
