@@ -1,0 +1,15 @@
+node_modules/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+.git/
+.github/
+.env
+.env.*
+!.env.example
+.ui-ux-evidence/
+.pytest_cache/
+.ruff_cache/
+apps/api/tests/

@@ -1,0 +1,23 @@
+name: shadequeue
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: shadequeue-db
+    environment:
+      POSTGRES_USER: shadequeue
+      POSTGRES_PASSWORD: shadequeue
+      POSTGRES_DB: shadequeue
+    ports:
+      # Host port 55432 avoids colliding with a local PostgreSQL on 5432.
+      - "55432:5432"
+    volumes:
+      - shadequeue_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shadequeue -d shadequeue"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  shadequeue_pgdata:

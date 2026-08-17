@@ -1,0 +1,33 @@
+# Single lint configuration for every Python file in the repository:
+# apps/api, scripts/, and migrations/.
+
+line-length = 110
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[lint.isort]
+# `app` lives under apps/api rather than at the repository root, so ruff cannot
+# infer that it is our own code.
+known-first-party = ["app", "tests"]
+
+[lint.per-file-ignores]
+# `Depends(...)` in a parameter default is the FastAPI dependency idiom, not the
+# mutable-default bug B008 exists to catch.
+"apps/api/app/api/routes/*.py" = ["B008"]
+"apps/api/app/api/deps.py" = ["B008"]
+
+# The ingestion scripts must import `_bootstrap` before anything from `app`,
+# because that import is what puts apps/api on sys.path. Sorting the block
+# would break them at runtime.
+"scripts/*.py" = ["I001", "E402"]
+
+# The fixture stop table is a fixed-width data block; one record per line is
+# more readable than wrapping each tuple.
+"scripts/generate_fixtures.py" = ["I001", "E402", "E501"]
+
+# Same reason: the event loop policy has to be installed before uvicorn is
+# imported, so the import order in these entry points is deliberate.
+"apps/api/serve.py" = ["E402"]
+"migrations/env.py" = ["I001", "E402"]
