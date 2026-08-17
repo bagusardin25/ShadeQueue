@@ -1,0 +1,261 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07392,
+          33.45873
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-101",
+        "LOCATION_NAME": "Central Ave & Roosevelt St (Arts District)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1640
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07383,
+          33.46512
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-102",
+        "LOCATION_NAME": "Central Ave & McDowell Rd (Library approach)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1810
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07369,
+          33.48071
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-103",
+        "LOCATION_NAME": "Central Ave & Thomas Rd (Medical campus)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1490
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07353,
+          33.48754
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-104",
+        "LOCATION_NAME": "Central Ave & Osborn Rd (Midtown transfer)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1370
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07332,
+          33.49505
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-105",
+        "LOCATION_NAME": "Central Ave & Indian School Rd (Northbound platform)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 2025
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.0731,
+          33.50152
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-106",
+        "LOCATION_NAME": "Central Ave & Campbell Ave (Neighborhood connector)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1080
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07286,
+          33.50582
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-107",
+        "LOCATION_NAME": "Central Ave & Highland Ave (Retail frontage)",
+        "NBR_SHELTERS": 1,
+        "RIDERSHIP": 1330
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08292,
+          33.45142
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-108",
+        "LOCATION_NAME": "7th Ave & Van Buren St (West transfer)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1260
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08267,
+          33.45895
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-109",
+        "LOCATION_NAME": "7th Ave & Roosevelt St (Community services)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 930
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08242,
+          33.46533
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-110",
+        "LOCATION_NAME": "7th Ave & McDowell Rd (Southbound platform)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1760
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08198,
+          33.48083
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-111",
+        "LOCATION_NAME": "7th Ave & Thomas Rd (Hospital connector)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1180
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08171,
+          33.48771
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-112",
+        "LOCATION_NAME": "7th Ave & Osborn Rd (School crossing)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 990
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08143,
+          33.49516
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-113",
+        "LOCATION_NAME": "7th Ave & Indian School Rd (Civic center approach)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1580
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.08109,
+          33.50914
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-114",
+        "LOCATION_NAME": "7th Ave & Camelback Rd (North transfer)",
+        "NBR_SHELTERS": 1,
+        "RIDERSHIP": 2180
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.07592,
+          33.44651
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-115",
+        "LOCATION_NAME": "1st Ave & Jefferson St (Downtown connector)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 1875
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -112.0756,
+          33.45412
+        ]
+      },
+      "properties": {
+        "STOP_ID": "SQ-116",
+        "LOCATION_NAME": "1st Ave & Fillmore St (Senior services)",
+        "NBR_SHELTERS": 0,
+        "RIDERSHIP": 850
+      }
+    }
+  ]
+}

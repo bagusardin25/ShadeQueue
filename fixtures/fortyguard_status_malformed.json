@@ -1,0 +1,7 @@
+{
+  "activity_id": "fixture-activity-central-phoenix-0001",
+  "state": "banana",
+  "map_data": {
+    "type": "FeatureCollection"
+  }
+}
