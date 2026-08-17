@@ -113,11 +113,10 @@ export function ScenarioPage() {
 
       <header className="mt-5 flex flex-col gap-5 border-b border-line pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="fixture">Demo fixture</Badge>
-            <Badge tone="success">Ready for review</Badge>
-          </div>
-          <h1 className="mt-3 text-[clamp(2.2rem,5vw,4.4rem)] font-black leading-none tracking-[-0.065em]">Central / 7th Avenue</h1>
+          <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
+            Demo fixture <span className="text-line">|</span> Ready for review
+          </p>
+          <h1 className="text-[clamp(2.2rem,5vw,4.4rem)] font-black leading-none tracking-[-0.09em]">Central / 7th Avenue</h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-ink">
             <span className="inline-flex items-center gap-1.5"><Clock3 className="size-4" aria-hidden="true" /> Completed {formatDateTime(data.completedAt)} MST</span>
             <span className="inline-flex items-center gap-1.5"><Database className="size-4" aria-hidden="true" /> Deterministic contract fixture</span>

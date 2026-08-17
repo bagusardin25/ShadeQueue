@@ -48,29 +48,14 @@ export function ScenarioBuilderPage() {
   return (
     <div>
       <section className="relative overflow-hidden border-b border-line bg-panel">
-        <svg
-          className="pointer-events-none absolute -right-28 -top-28 h-[34rem] w-[34rem] text-heat opacity-[0.13]"
-          viewBox="0 0 480 480"
-          fill="none"
-          aria-hidden="true"
-        >
-          {[62, 102, 146, 194].map((radius) => (
-            <path
-              key={radius}
-              d={`M 240 ${240 - radius} C ${365 + radius / 5} ${155 - radius / 8}, ${360 + radius / 4} ${340 + radius / 10}, 240 ${240 + radius} C ${105 - radius / 6} ${348 + radius / 10}, ${105 - radius / 5} ${135 - radius / 10}, 240 ${240 - radius}`}
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-          ))}
-        </svg>
+
 
         <div className="relative mx-auto grid max-w-[100rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(28rem,0.95fr)] lg:items-start lg:px-8 lg:py-16">
           <div className="max-w-2xl pt-1 lg:pt-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="fixture">Guided demo · 01</Badge>
-              <span className="text-xs font-bold uppercase tracking-[0.13em] text-muted-ink">No live credits used</span>
-            </div>
-            <h1 className="mt-6 max-w-2xl text-[clamp(2.7rem,7vw,5.8rem)] font-black leading-[0.92] tracking-[-0.075em]">
+            <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-heat">
+              Guided demo · 01 <span className="mx-2 text-line">|</span> <span className="text-muted-ink">No live credits used</span>
+            </p>
+            <h1 className="mt-2 max-w-2xl text-[clamp(2.7rem,7vw,5.8rem)] font-black leading-[0.92] tracking-[-0.09em]">
               Put limited shade where <span className="text-heat">heat burden</span> converges.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-muted-ink sm:text-lg">

@@ -106,11 +106,10 @@ export function PortfolioPage() {
 
       <header className="mt-5 grid gap-6 border-b border-line pb-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="fixture">Demo fixture</Badge>
-            <Badge tone="success">Contract status: {data.solverStatus}</Badge>
-          </div>
-          <h1 className="mt-4 max-w-4xl text-[clamp(2.6rem,6vw,5.4rem)] font-black leading-[0.92] tracking-[-0.072em]">
+          <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
+            Demo fixture <span className="text-line">|</span> Contract status: {data.solverStatus}
+          </p>
+          <h1 className="max-w-4xl text-[clamp(2.6rem,6vw,5.4rem)] font-black leading-[0.92] tracking-[-0.09em]">
             {selectedStops.length} allocations. <span className="text-heat">Every one auditable.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted-ink">
