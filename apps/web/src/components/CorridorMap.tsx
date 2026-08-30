@@ -6,6 +6,7 @@ import { Keyboard, Map as MapIcon, TriangleAlert } from 'lucide-react'
 import type { Stop } from '../data/fixture'
 import type { HeatmapLayer } from '../lib/api'
 import { modeLabel } from '../lib/api'
+import { portfolioRankById } from '../lib/planning'
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl)
 
@@ -69,7 +70,7 @@ function stopCollection(stops: Stop[], selectedStopId: string) {
 
 function shelterStatus(stop: Stop) {
   if (stop.shelterCount > 0) return `Existing shelter (${stop.shelterCount} on site)`
-  if (stop.selected) return `New shelter · rank ${stop.rank}`
+  if (stop.selected) return 'Recommended new shelter'
   return 'No new shelter in this portfolio'
 }
 
@@ -79,8 +80,8 @@ function asStopId(value: unknown): string | null {
   return null
 }
 
-function markerLabel(stop: Stop) {
-  if (stop.selected) return String(stop.rank ?? '')
+function markerLabel(stop: Stop, pinRank?: number) {
+  if (stop.selected) return String(pinRank ?? stop.rank ?? '')
   if (stop.shelterCount > 0) return `S${stop.shelterCount}`
   return '·'
 }
@@ -281,13 +282,14 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
     stopSource?.setData(stopCollection(stops, selectedStopId))
 
     for (const marker of markersRef.current) marker.remove()
+    const pinRanks = portfolioRankById(stops)
     const pinStops = stops.filter((stop) => stop.selected || stop.shelterCount > 0)
     markersRef.current = pinStops.map((stop) => {
       const pin = document.createElement('button')
       pin.type = 'button'
       const kind = stop.shelterCount > 0 ? 'existing' : stop.selected ? 'new' : 'candidate'
       pin.className = `shelter-pin shelter-pin-${kind}${stop.stopId === selectedStopId ? ' shelter-pin-selected' : ''}`
-      pin.textContent = markerLabel(stop)
+      pin.textContent = markerLabel(stop, pinRanks.get(stop.stopId))
       pin.setAttribute(
         'aria-label',
         `${stop.name}. ${shelterStatus(stop)}. ${stop.exceedanceHours.toFixed(1)} exceedance hours.`,
@@ -312,21 +314,24 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
   const highLabel = `${range.max.toFixed(range.max >= 100 ? 0 : 1)} h`
 
   return (
-    <section className="relative overflow-hidden border border-line bg-[#d7d2c4]" aria-labelledby="map-title">
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-wrap items-start justify-between gap-3 p-4">
-        <div className="pointer-events-auto max-w-[20rem] border border-line bg-panel/95 p-3 shadow-[4px_4px_0_rgba(20,41,37,0.12)]">
+    <section className="overflow-hidden border border-line bg-[#d7d2c4]" aria-labelledby="map-title">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-panel px-4 py-3">
+        <div className="max-w-xl">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-ink">
             <MapIcon className="size-4 text-heat" aria-hidden="true" /> Phoenix corridor
           </p>
           <h2 id="map-title" className="mt-1 text-base font-extrabold tracking-[-0.02em]">
-            Shelter pins on the heat surface
+            Recommended pins on the heat surface
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-ink">
-            Numbered pins = recommended new shelters. Dots = other official Phoenix stops.
-            {heatCount ? ` ${heatCount.toLocaleString('en-US')} FortyGuard cells · ${stops.length} stops · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}` : ` ${stops.length} stops`}
+            Numbered pins 1–{Math.max(1, stops.filter((stop) => stop.selected).length)} are new shelters.
+            Dots are other official Phoenix stops.
+            {heatCount
+              ? ` ${heatCount.toLocaleString('en-US')} FortyGuard cells · ${stops.length} stops · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}`
+              : ` ${stops.length} stops`}
           </p>
         </div>
-        <a href="#stops-table" className="pointer-events-auto app-link inline-flex min-h-11 items-center gap-2 bg-panel/95 px-3 text-xs shadow-sm">
+        <a href="#stops-table" className="app-link inline-flex min-h-11 items-center gap-2 px-3 text-xs">
           <Keyboard className="size-4" aria-hidden="true" /> Use table equivalent
         </a>
       </div>
@@ -350,7 +355,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-10 border-t border-line bg-panel/95 px-4 py-3">
+      <div className="border-t border-line bg-panel px-4 py-3">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-[12rem] flex-1">
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Exceedance hours</p>

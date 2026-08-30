@@ -326,7 +326,10 @@ function toStop(item: z.infer<typeof portfolioStopSchema>): Stop {
   return {
     stopId: item.stopId,
     name: item.name,
-    context: item.heatJoinMethod.replaceAll('_', ' ').toLowerCase(),
+    context:
+      item.heatJoinMethod === 'INTERSECTS'
+        ? 'Phoenix GIS stop · heat cell intersect'
+        : item.heatJoinMethod.replaceAll('_', ' ').toLowerCase(),
     longitude: item.longitude,
     latitude: item.latitude,
     shelterCount: item.shelterCount,

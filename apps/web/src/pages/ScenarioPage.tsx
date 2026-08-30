@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Clock3, Database, Edit3, MapPinned, RefreshCcw, TriangleAlert } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { CorridorMap } from '../components/CorridorMap'
+import { RunInsights } from '../components/RunInsights'
 import { StopAuditPanel } from '../components/StopAuditPanel'
 import { StopsTable } from '../components/StopsTable'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { formatDateTime } from '../lib/utils'
 import { isUuid, loadFixtureView, loadLiveScenario, modeLabel } from '../lib/api'
+import { existingShelterCount, objectiveDelta, portfolioRankById } from '../lib/planning'
 
 function asFiniteNumber(value: string | null, fallback: number) {
   const parsed = Number(value)
@@ -73,8 +75,10 @@ export function ScenarioPage() {
             <p className="mt-3 max-w-xl leading-7 text-muted-ink">No portfolio was presented as live success. Your scenario inputs remain intact; continue with the explicit deterministic fixture or return to configuration.</p>
             <p className="mt-4 border-l-2 border-danger pl-3 text-sm font-semibold text-[#7b2d24]">{query.error.message}</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button onClick={useSafeFixture}><RefreshCcw className="size-4" aria-hidden="true" /> Use safe fixture</Button>
-              <Link to="/scenarios/new" className="inline-flex min-h-11 items-center rounded-md border border-line bg-panel px-4 text-sm font-bold hover:bg-panel-raised focus-visible:outline-2 focus-visible:outline-focus">Edit scenario</Link>
+              <Link to="/scenarios/new" className="inline-flex min-h-11 items-center rounded-md bg-action px-4 text-sm font-bold text-white hover:bg-action-strong focus-visible:outline-2 focus-visible:outline-focus">Edit scenario</Link>
+              {!isUuid(scenarioId) ? (
+                <Button onClick={useSafeFixture}><RefreshCcw className="size-4" aria-hidden="true" /> Use safe fixture</Button>
+              ) : null}
             </div>
           </div>
         </section>
@@ -101,11 +105,15 @@ export function ScenarioPage() {
 
   const selectedCount = data.stops.filter((stop) => stop.selected).length
   const eligibleCount = data.stops.filter((stop) => stop.shelterCount === 0).length
+  const recordedShelters = existingShelterCount(data.stops)
   const currentStopId = selectedStopId ?? data.stops.find((stop) => stop.selected)?.stopId ?? data.stops[0]!.stopId
   const selectedStop = data.stops.find((stop) => stop.stopId === currentStopId) ?? data.stops[0]!
-  const gain = data.baselineValue === 0 ? 0 : ((data.objectiveValue - data.baselineValue) / data.baselineValue) * 100
+  const delta = objectiveDelta(data.objectiveValue, data.baselineValue)
+  const pinRanks = portfolioRankById(data.stops)
   const highEquityShare =
-    data.stops.filter((stop) => stop.selected && stop.sviPercentile >= 0.75).length / selectedCount
+    selectedCount === 0
+      ? 0
+      : data.stops.filter((stop) => stop.selected && stop.sviPercentile >= 0.75).length / selectedCount
   const portfolioSearch = searchParams.toString()
 
   return (
@@ -121,7 +129,7 @@ export function ScenarioPage() {
           <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
             {modeLabel(data.runtimeMode)} <span className="text-line">|</span> {data.solverStatus}
           </p>
-          <h1 className="text-[clamp(2.2rem,5vw,4.4rem)] font-black leading-none tracking-[-0.09em]">Central / 7th Avenue</h1>
+          <h1 className="text-[clamp(1.85rem,4vw,3.4rem)] font-black leading-none tracking-[-0.07em]">Central / 7th Avenue</h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-ink">
             <span className="inline-flex items-center gap-1.5"><Clock3 className="size-4" aria-hidden="true" /> Completed {formatDateTime(data.completedAt)} MST</span>
             <span className="inline-flex items-center gap-1.5"><Database className="size-4" aria-hidden="true" /> {data.heatCellCount ? `${data.heatCellCount} heat cells` : data.formulaVersion}</span>
@@ -142,8 +150,14 @@ export function ScenarioPage() {
 
       <section className="mt-6 grid gap-px border border-line bg-line sm:grid-cols-2 xl:grid-cols-4" aria-label="Scenario summary">
         {[
-          ['Allocated', `${selectedCount} / ${eligibleCount}`, `${data.stops.length - eligibleCount} existing shelters excluded`],
-          ['Proxy objective', data.objectiveValue.toFixed(1), `${gain >= 0 ? '+' : ''}${gain.toFixed(1)}% vs ridership baseline`],
+          ['Allocated', `${selectedCount} / ${eligibleCount}`, `${data.stops.length} official stops · ${recordedShelters} GIS-recorded shelter${recordedShelters === 1 ? '' : 's'} excluded`],
+          [
+            'Proxy objective',
+            data.objectiveValue.toFixed(1),
+            delta.kind === 'equity-cost'
+              ? `${delta.pct.toFixed(1)}% vs ridership baseline (equity cost)`
+              : `${delta.pct >= 0 ? '+' : ''}${delta.pct.toFixed(1)}% vs ridership baseline`,
+          ],
           ['High-SVI share', `${Math.round(highEquityShare * 100)}%`, `Constraint ≥ ${Math.round(data.minimumEquityShare * 100)}%`],
           ['Solver', data.solverStatus, data.formulaVersion],
         ].map(([label, value, detail]) => (
@@ -154,6 +168,8 @@ export function ScenarioPage() {
           </article>
         ))}
       </section>
+
+      <RunInsights data={data} />
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(30rem,0.88fr)]">
         <CorridorMap
@@ -167,11 +183,15 @@ export function ScenarioPage() {
       </div>
 
       <div className="mt-5">
-        <StopAuditPanel stop={selectedStop} />
+        <StopAuditPanel
+          stop={selectedStop}
+          runtimeMode={data.runtimeMode}
+          displayRank={pinRanks.get(selectedStop.stopId)}
+        />
       </div>
 
       <section className="mt-5 border border-line bg-panel-raised" aria-labelledby="sources-title">
-        <details className="group">
+        <details className="group" open={data.runtimeMode !== 'DEMO_FIXTURE'}>
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-5">
             <span id="sources-title">Source versions and evidence</span>
             <span className="text-xs font-bold uppercase tracking-[0.1em] text-muted-ink group-open:hidden">Expand</span>

@@ -10,16 +10,20 @@ export function AppShell() {
   const session = typeof window === 'undefined' ? null : readSession()
   const navItems = [
     { label: 'New scenario', to: '/scenarios/new', icon: Route },
-    {
-      label: 'Corridor',
-      to: session ? `/scenarios/${session.scenarioId}?run=${session.runId}` : '/scenarios/phoenix-central-fixture',
-      icon: MapPinned,
-    },
-    {
-      label: 'Portfolio',
-      to: session ? `/portfolios/${session.runId}` : '/portfolios/portfolio-fixture-001',
-      icon: FileCheck2,
-    },
+    ...(session
+      ? [
+          {
+            label: 'Corridor',
+            to: `/scenarios/${session.scenarioId}?run=${session.runId}`,
+            icon: MapPinned,
+          },
+          {
+            label: 'Portfolio',
+            to: `/portfolios/${session.runId}`,
+            icon: FileCheck2,
+          },
+        ]
+      : []),
   ]
   const live = health.data?.liveProviderEnabled
   const mode = live ? 'LIVE' : health.data ? 'DEMO_FIXTURE' : 'unknown'

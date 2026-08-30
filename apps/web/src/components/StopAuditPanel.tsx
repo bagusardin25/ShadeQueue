@@ -8,11 +8,14 @@ const reasonLabels: Record<string, string> = {
   HIGH_SOCIAL_VULNERABILITY: 'High SVI percentile',
   HIGH_SOURCE_RIDERSHIP: 'High source-provided ridership',
   EXISTING_SHELTER: 'Existing shelter excludes a new allocation',
+  EQUITY_FLOOR_ELIGIBLE: 'Counts toward the high-SVI floor',
   BALANCED_PORTFOLIO_VALUE: 'Balanced value across score components',
 }
 
 interface StopAuditPanelProps {
   stop: Stop
+  runtimeMode?: string
+  displayRank?: number | null
 }
 
 const components = [
@@ -21,8 +24,10 @@ const components = [
   { key: 'equityComponent' as const, label: 'Equity', color: 'bg-sun' },
 ]
 
-export function StopAuditPanel({ stop }: StopAuditPanelProps) {
+export function StopAuditPanel({ stop, runtimeMode, displayRank }: StopAuditPanelProps) {
   const excluded = stop.shelterCount > 0
+  const live = runtimeMode !== undefined && runtimeMode !== 'DEMO_FIXTURE'
+  const rankLabel = displayRank ?? stop.rank
   return (
     <section className="border border-ink bg-panel" aria-labelledby="audit-panel-title">
       <div className="thermal-rule" />
@@ -30,7 +35,7 @@ export function StopAuditPanel({ stop }: StopAuditPanelProps) {
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={excluded ? 'neutral' : stop.selected ? 'success' : 'warning'}>
-              {excluded ? 'Excluded' : stop.selected ? `Recommended · rank ${stop.rank}` : 'Not selected'}
+              {excluded ? 'Excluded' : stop.selected ? `Recommended · ${rankLabel ? `pin ${rankLabel}` : 'selected'}` : 'Not selected'}
             </Badge>
             <span className="font-mono text-xs text-muted-ink">{stop.stopId}</span>
           </div>
@@ -88,8 +93,12 @@ export function StopAuditPanel({ stop }: StopAuditPanelProps) {
             ))}
           </div>
           <div className="mt-6 border-t border-line pt-4 text-xs leading-5 text-muted-ink">
-            <p><strong className="text-ink">Formula:</strong> normalized source value × exceedance hours × equity multiplier.</p>
-            <p className="mt-2">These are synthetic fixture values. They demonstrate the audit contract, not a Phoenix planning recommendation.</p>
+            <p><strong className="text-ink">Formula:</strong> normalized source ridership × exceedance hours × equity multiplier.</p>
+            <p className="mt-2">
+              {live
+                ? 'Ridership and coordinates come from City of Phoenix GIS. SVI is CDC/ATSDR 2022. Heat is FortyGuard. This is a review candidate, not a city decision.'
+                : 'These are labeled DEMO_FIXTURE values. They demonstrate the audit contract, not official Phoenix or CDC data.'}
+            </p>
           </div>
         </div>
       </div>

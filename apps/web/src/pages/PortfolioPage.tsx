@@ -13,9 +13,10 @@ import {
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { type Stop } from '../data/fixture'
 import { formatDateTime, formatNumber } from '../lib/utils'
 import { exportCsvUrl, isUuid, loadFixtureView, loadLivePortfolio, modeLabel } from '../lib/api'
+import { RunInsights } from '../components/RunInsights'
+import { objectiveDelta, selectedPortfolio, selectedReason } from '../lib/planning'
 
 function finiteParam(value: string | null, fallback: number) {
   const parsed = Number(value)
@@ -25,13 +26,6 @@ function finiteParam(value: string | null, fallback: number) {
 function escapeCsv(value: string | number | null) {
   const normalized = value === null ? '' : String(value)
   return `"${normalized.replaceAll('"', '""')}"`
-}
-
-function selectedReason(stop: Stop) {
-  if (stop.reasonCodes.includes('HIGH_HEAT_EXPOSURE')) return 'Heat-led priority'
-  if (stop.reasonCodes.includes('HIGH_SOURCE_RIDERSHIP')) return 'Demand-led priority'
-  if (stop.reasonCodes.includes('HIGH_SOCIAL_VULNERABILITY')) return 'Equity-led priority'
-  return 'Balanced portfolio value'
 }
 
 export function PortfolioPage() {
@@ -73,12 +67,13 @@ export function PortfolioPage() {
       </div>
     )
   }
-  const selectedStops = data.stops.filter((stop) => stop.selected).sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))
+  const selectedStops = selectedPortfolio(data.stops)
   const baselineStops = data.stops.filter((stop) => stop.baselineSelected)
   const baselineOnly = baselineStops.filter((stop) => !stop.selected)
   const optimizedOnly = selectedStops.filter((stop) => !stop.baselineSelected)
   const overlapCount = selectedStops.filter((stop) => stop.baselineSelected).length
-  const gain = ((data.objectiveValue - data.baselineValue) / data.baselineValue) * 100
+  const delta = objectiveDelta(data.objectiveValue, data.baselineValue)
+  const scaleMax = Math.max(data.objectiveValue, data.baselineValue, 1)
   const highEquityCount = selectedStops.filter((stop) => stop.sviPercentile >= 0.75).length
   const scenarioQuery = searchParams.toString()
 
@@ -156,7 +151,7 @@ export function PortfolioPage() {
           <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
             {modeLabel(data.runtimeMode)} <span className="text-line">|</span> {data.solverStatus}
           </p>
-          <h1 className="max-w-4xl text-[clamp(2.6rem,6vw,5.4rem)] font-black leading-[0.92] tracking-[-0.09em]">
+          <h1 className="max-w-4xl text-[clamp(1.9rem,4.6vw,3.8rem)] font-black leading-[0.95] tracking-[-0.07em]">
             {selectedStops.length} allocations. <span className="text-heat">Every one auditable.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted-ink">
@@ -170,6 +165,8 @@ export function PortfolioPage() {
           <p className="mt-2 text-xs text-muted-ink">{isUuid(runId) ? 'Exports the auditable API packet' : 'Exports fixture data only'}</p>
         </div>
       </header>
+
+      <RunInsights data={data} />
 
       {exportStatus ? (
         <div
@@ -192,7 +189,7 @@ export function PortfolioPage() {
           </div>
           <p className="metric-numeral mt-7 text-4xl font-bold">{data.baselineValue.toFixed(1)}</p>
           <div className="mt-3 h-2 bg-[#e3e0d6]" aria-hidden="true">
-            <div className="h-full bg-[#77857f]" style={{ width: `${(data.baselineValue / data.objectiveValue) * 100}%` }} />
+            <div className="h-full bg-[#77857f]" style={{ width: `${Math.min(100, (data.baselineValue / scaleMax) * 100)}%` }} />
           </div>
           <p className="mt-3 text-xs leading-5 text-muted-ink">Not Phoenix's official planning process. Used only as a declared comparison.</p>
         </article>
@@ -205,12 +202,22 @@ export function PortfolioPage() {
             </div>
             <FileCheck2 className="size-5 text-action" aria-hidden="true" />
           </div>
-          <div className="mt-7 flex items-end gap-3">
+          <div className="mt-7 flex flex-wrap items-end gap-3">
             <p className="metric-numeral text-4xl font-bold">{data.objectiveValue.toFixed(1)}</p>
-            <Badge tone="success" className="mb-1">+{gain.toFixed(1)}%</Badge>
+            <Badge tone={delta.kind === 'equity-cost' ? 'warning' : 'success'} className="mb-1">
+              {delta.kind === 'equity-cost'
+                ? `${delta.pct.toFixed(1)}% vs baseline`
+                : `${delta.pct >= 0 ? '+' : ''}${delta.pct.toFixed(1)}%`}
+            </Badge>
           </div>
-          <div className="mt-3 h-2 bg-[#cbded8]" aria-hidden="true"><div className="h-full w-full bg-action" /></div>
-          <p className="mt-3 text-xs leading-5 text-muted-ink">Objective coverage for this run, not measured health impact.</p>
+          <div className="mt-3 h-2 bg-[#cbded8]" aria-hidden="true">
+            <div className="h-full bg-action" style={{ width: `${Math.min(100, (data.objectiveValue / scaleMax) * 100)}%` }} />
+          </div>
+          <p className="mt-3 text-xs leading-5 text-muted-ink">
+            {delta.kind === 'equity-cost'
+              ? 'Lower than ridership-only because the high-SVI floor is binding. Not a health impact.'
+              : 'Objective coverage for this run, not measured health impact.'}
+          </p>
         </article>
 
         <article className="bg-panel p-5 sm:p-6">
@@ -230,12 +237,12 @@ export function PortfolioPage() {
               <p className="text-xs font-bold uppercase tracking-[0.13em] text-heat">Recommended review set</p>
               <h2 id="selected-stops-title" className="mt-1 text-2xl font-extrabold tracking-[-0.035em]">Selected stops</h2>
             </div>
-            <p className="text-xs text-muted-ink">Sorted by portfolio rank</p>
+            <p className="text-xs text-muted-ink">Pins 1–{selectedStops.length} by score inside this set</p>
           </div>
           <ol className="divide-y divide-line">
-            {selectedStops.map((stop) => (
+            {selectedStops.map((stop, index) => (
               <li key={stop.stopId} className="grid gap-4 p-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-5">
-                <span className="metric-numeral grid size-10 place-items-center border border-ink bg-ink text-sm font-bold text-panel">{String(stop.rank).padStart(2, '0')}</span>
+                <span className="metric-numeral grid size-10 place-items-center border border-ink bg-ink text-sm font-bold text-panel">{String(index + 1).padStart(2, '0')}</span>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-bold">{stop.name}</h3>

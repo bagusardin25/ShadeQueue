@@ -157,12 +157,20 @@ export function ScenarioBuilderPage() {
               <p><strong className="text-ink">Human authority stays visible.</strong> This interface ranks review candidates; it does not authorize construction or claim health outcomes.</p>
             </div>
             {bootstrap?.snapshots?.length ? (
-              <ul className="mt-6 space-y-2 text-xs leading-5 text-muted-ink">
+              <ul className="mt-6 flex flex-col gap-2">
                 {latestSnapshots(bootstrap.snapshots).map((item) => (
-                  <li key={item.id} className="border-l-2 border-line pl-3">
+                  <li key={item.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs leading-5">
+                    <Badge tone={item.evidenceMode === 'DEMO_FIXTURE' ? 'fixture' : 'success'}>
+                      {item.evidenceMode}
+                    </Badge>
                     <strong className="text-ink">{item.sourceName}</strong>
-                    <span className="mx-2 font-mono uppercase tracking-[0.08em]">{item.evidenceMode}</span>
-                    <span>{item.sourceVersion}</span>
+                    <span className="text-muted-ink">
+                      {item.sourceName.includes('Phoenix')
+                        ? 'Official corridor GIS stops'
+                        : item.sourceName.includes('SVI')
+                          ? 'CDC 2022 tract ranks'
+                          : item.sourceVersion}
+                    </span>
                   </li>
                 ))}
               </ul>

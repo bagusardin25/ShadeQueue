@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import type { Stop } from '../data/fixture'
 import { cn, formatNumber } from '../lib/utils'
+import { portfolioRankById } from '../lib/planning'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 
@@ -13,9 +14,9 @@ interface StopsTableProps {
   onSelect: (stopId: string) => void
 }
 
-function stopStatus(stop: Stop) {
+function stopStatus(stop: Stop, pinRank?: number) {
   if (stop.shelterCount > 0) return { label: 'Existing shelter', tone: 'neutral' as const }
-  if (stop.selected) return { label: `Rank ${stop.rank}`, tone: 'success' as const }
+  if (stop.selected) return { label: pinRank ? `Pin ${pinRank}` : 'Recommended', tone: 'success' as const }
   if (stop.baselineSelected) return { label: 'Baseline only', tone: 'warning' as const }
   return { label: 'Candidate', tone: 'neutral' as const }
 }
@@ -23,6 +24,7 @@ function stopStatus(stop: Stop) {
 export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StopFilter>('recommended')
+  const pinRanks = useMemo(() => portfolioRankById(stops), [stops])
 
   const filteredStops = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -54,7 +56,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-heat">Accessible map equivalent</p>
-            <h2 id="stops-table-title" className="mt-1 text-lg font-extrabold tracking-[-0.03em]">Candidate stops</h2>
+            <h2 id="stops-table-title" className="mt-1 text-lg font-extrabold tracking-[-0.03em]">Official corridor stops</h2>
           </div>
           <p className="text-xs text-muted-ink" aria-live="polite">{filteredStops.length} of {stops.length} shown</p>
         </div>
@@ -117,7 +119,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
               </thead>
               <tbody>
                 {filteredStops.map((stop) => {
-                  const status = stopStatus(stop)
+                  const status = stopStatus(stop, pinRanks.get(stop.stopId))
                   const isSelected = selectedStopId === stop.stopId
                   return (
                     <tr key={stop.stopId} className={cn('border-b border-line/80 last:border-b-0', isSelected && 'bg-[#e8f3ef]')}>
@@ -145,7 +147,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
 
           <ul className="divide-y divide-line md:hidden">
             {filteredStops.map((stop) => {
-              const status = stopStatus(stop)
+              const status = stopStatus(stop, pinRanks.get(stop.stopId))
               const isSelected = selectedStopId === stop.stopId
               return (
                 <li key={stop.stopId} className={cn('p-3', isSelected && 'bg-[#e8f3ef]')}>
