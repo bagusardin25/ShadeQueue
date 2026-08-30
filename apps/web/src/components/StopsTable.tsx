@@ -22,7 +22,7 @@ function stopStatus(stop: Stop) {
 
 export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps) {
   const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<StopFilter>('all')
+  const [filter, setFilter] = useState<StopFilter>('recommended')
 
   const filteredStops = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

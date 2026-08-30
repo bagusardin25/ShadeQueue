@@ -32,6 +32,15 @@ const flowSteps = [
   { icon: FileSearch, label: 'Review', detail: 'Map, table, and stop-level audit' },
 ]
 
+function latestSnapshots(snapshots: SourceBootstrap['snapshots']) {
+  const latest = new Map<string, SourceBootstrap['snapshots'][number]>()
+  for (const item of snapshots) {
+    const previous = latest.get(item.sourceName)
+    if (!previous || item.retrievedAt > previous.retrievedAt) latest.set(item.sourceName, item)
+  }
+  return [...latest.values()]
+}
+
 export function ScenarioBuilderPage() {
   const navigate = useNavigate()
   const [shelterSlots, setShelterSlots] = useState(10)
@@ -147,6 +156,17 @@ export function ScenarioBuilderPage() {
               <ShieldCheck className="mt-0.5 size-5 shrink-0 text-[#8d6509]" aria-hidden="true" />
               <p><strong className="text-ink">Human authority stays visible.</strong> This interface ranks review candidates; it does not authorize construction or claim health outcomes.</p>
             </div>
+            {bootstrap?.snapshots?.length ? (
+              <ul className="mt-6 space-y-2 text-xs leading-5 text-muted-ink">
+                {latestSnapshots(bootstrap.snapshots).map((item) => (
+                  <li key={item.id} className="border-l-2 border-line pl-3">
+                    <strong className="text-ink">{item.sourceName}</strong>
+                    <span className="mx-2 font-mono uppercase tracking-[0.08em]">{item.evidenceMode}</span>
+                    <span>{item.sourceVersion}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
           <form onSubmit={handleSubmit} className="border border-ink bg-panel shadow-[8px_8px_0_#142925]" aria-labelledby="scenario-form-title">
@@ -280,8 +300,9 @@ export function ScenarioBuilderPage() {
               <div className="border border-[#8d4f09]/25 bg-[#fff6df] p-3 text-xs leading-5 text-[#66420d]">
                 {bootstrap?.liveProviderEnabled ? (
                   <>
-                    <strong>Live mode:</strong> this run spends a FortyGuard heatmap credit, then CP-SAT
-                    selects the shelter portfolio. The runtime badge never labels a fixture as live.
+                    <strong>Live sources:</strong> FortyGuard heatmap + City of Phoenix bus-stop GIS +
+                    CDC/ATSDR SVI 2022. Shelter counts are missing for almost every GIS row and are
+                    treated as unsheltered. Ridership is a source-provided value, not verified daily boardings.
                   </>
                 ) : (
                   <>

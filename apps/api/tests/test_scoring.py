@@ -85,6 +85,14 @@ def test_reason_codes_reflect_the_documented_thresholds():
     assert rc.EQUITY_FLOOR_ELIGIBLE in scored.reason_codes
 
 
+def test_high_ridership_uses_the_scenario_maximum_not_a_fixed_count():
+    high = make_candidate("HIGH", ridership=500, exceedance=1.0, svi=0.10)
+    low = make_candidate("LOW", ridership=100, exceedance=1.0, svi=0.10)
+    scored = {item.stop_id: item for item in score_candidates([high, low], equity_weight=0.0)}
+    assert rc.HIGH_SOURCE_RIDERSHIP in scored["HIGH"].reason_codes
+    assert rc.HIGH_SOURCE_RIDERSHIP not in scored["LOW"].reason_codes
+
+
 def test_nearest_cell_and_missing_coverage_are_labelled():
     from dataclasses import replace
 

@@ -130,7 +130,10 @@ def score_candidates(
             reasons.append(rc.HIGH_HEAT_EXPOSURE)
         if candidate.svi_percentile >= rc.HIGH_SVI_PERCENTILE_THRESHOLD:
             reasons.append(rc.HIGH_SOCIAL_VULNERABILITY)
-        if candidate.ridership_value >= rc.HIGH_RIDERSHIP_THRESHOLD:
+        if (
+            max_ridership > 0.0
+            and candidate.ridership_value >= rc.HIGH_RIDERSHIP_RELATIVE_THRESHOLD * max_ridership
+        ):
             reasons.append(rc.HIGH_SOURCE_RIDERSHIP)
         if candidate.svi_percentile >= rc.EQUITY_FLOOR_PERCENTILE:
             reasons.append(rc.EQUITY_FLOOR_ELIGIBLE)

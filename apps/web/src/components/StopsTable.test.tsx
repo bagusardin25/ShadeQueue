@@ -32,7 +32,9 @@ describe('StopsTable', () => {
       />,
     )
 
-    fireEvent.click(screen.getAllByRole('button', { name: /Central Ave & Thomas Rd/ })[0]!)
-    expect(onSelect).toHaveBeenCalledWith('SQ-103')
+    const recommended = scenarioFixture.stops.find((stop) => stop.selected)
+    expect(recommended).toBeTruthy()
+    fireEvent.click(screen.getAllByRole('button', { name: new RegExp(recommended!.name) })[0]!)
+    expect(onSelect).toHaveBeenCalledWith(recommended!.stopId)
   })
 })

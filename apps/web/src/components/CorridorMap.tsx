@@ -73,6 +73,12 @@ function shelterStatus(stop: Stop) {
   return 'No new shelter in this portfolio'
 }
 
+function asStopId(value: unknown): string | null {
+  if (typeof value === 'string' && value) return value
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  return null
+}
+
 function markerLabel(stop: Stop) {
   if (stop.selected) return String(stop.rank ?? '')
   if (stop.shelterCount > 0) return `S${stop.shelterCount}`
@@ -175,9 +181,14 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           type: 'circle',
           source: 'stops',
           paint: {
-            'circle-radius': 14,
+            'circle-radius': [
+              'case',
+              ['==', ['get', 'recommended'], 1], 0,
+              ['==', ['get', 'existingShelter'], 1], 0,
+              11,
+            ],
             'circle-color': '#fffdf7',
-            'circle-opacity': 0.9,
+            'circle-opacity': 0.92,
           },
         },
         {
@@ -185,11 +196,16 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           type: 'circle',
           source: 'stops',
           paint: {
-            'circle-radius': 7,
+            'circle-radius': [
+              'case',
+              ['==', ['get', 'recommended'], 1], 0,
+              ['==', ['get', 'existingShelter'], 1], 0,
+              5.5,
+            ],
             'circle-color': '#c48a12',
             'circle-stroke-color': '#142925',
-            'circle-stroke-width': 1.5,
-            'circle-opacity': 0.35,
+            'circle-stroke-width': 1.25,
+            'circle-opacity': 0.92,
           },
         },
       ],
@@ -212,8 +228,12 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
         setMapReady(true)
       })
       map.on('click', 'stops-layer', (event: MapLayerMouseEvent) => {
-        const stopId = event.features?.[0]?.properties.stopId
-        if (typeof stopId === 'string') onSelectRef.current(stopId)
+        const stopId = asStopId(event.features?.[0]?.properties?.stopId)
+        if (stopId) onSelectRef.current(stopId)
+      })
+      map.on('click', 'stops-halo', (event: MapLayerMouseEvent) => {
+        const stopId = asStopId(event.features?.[0]?.properties?.stopId)
+        if (stopId) onSelectRef.current(stopId)
       })
       map.getCanvas().addEventListener('webglcontextlost', () => setMapFailed(true), { once: true })
       mapRef.current = map
@@ -261,7 +281,8 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
     stopSource?.setData(stopCollection(stops, selectedStopId))
 
     for (const marker of markersRef.current) marker.remove()
-    markersRef.current = stops.map((stop) => {
+    const pinStops = stops.filter((stop) => stop.selected || stop.shelterCount > 0)
+    markersRef.current = pinStops.map((stop) => {
       const pin = document.createElement('button')
       pin.type = 'button'
       const kind = stop.shelterCount > 0 ? 'existing' : stop.selected ? 'new' : 'candidate'
@@ -301,8 +322,8 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
             Shelter pins on the heat surface
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-ink">
-            Numbered pins = new shelters. Square S = already has a shelter.
-            {heatCount ? ` ${heatCount.toLocaleString('en-US')} FortyGuard cells · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}` : ''}
+            Numbered pins = recommended new shelters. Dots = other official Phoenix stops.
+            {heatCount ? ` ${heatCount.toLocaleString('en-US')} FortyGuard cells · ${stops.length} stops · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}` : ` ${stops.length} stops`}
           </p>
         </div>
         <a href="#stops-table" className="pointer-events-auto app-link inline-flex min-h-11 items-center gap-2 bg-panel/95 px-3 text-xs shadow-sm">

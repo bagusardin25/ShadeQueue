@@ -2,7 +2,7 @@
 
 > Heat‑aware, auditable shade‑shelter allocation for a Phoenix transit corridor — powered by the FortyGuard Temperature API.
 
-ShadeQueue helps a transit planner decide **where to place a limited number of new bus‑stop shade shelters**. It combines hyperlocal heat exposure from [FortyGuard](https://www.fortyguard.com/), official City of Phoenix bus‑stop attributes, and CDC/ATSDR Social Vulnerability Index (SVI) data into a **ranked, auditable portfolio** of candidate stops.
+ShadeQueue helps a transit planner decide **where to place a limited number of new bus‑stop shade shelters**. It combines hyperlocal heat exposure from [FortyGuard](https://www.fortyguard.com/), City of Phoenix bus‑stop GIS attributes, and CDC/ATSDR Social Vulnerability Index (SVI) 2022 tract ranks into a **ranked, auditable portfolio** of candidate stops. Production snapshots are labeled `LIVE` or `CACHED_LIVE`; local tests keep synthetic `DEMO_FIXTURE` rows.
 
 It **recommends** candidates. It does **not** authorize spending and does **not** claim any reduction in temperature, illness, or mortality. A qualified human planner owns the final decision.
 
@@ -198,14 +198,14 @@ Base path `/api/v1`; interactive docs at `/api/docs`.
 | Source | Role | Key fields |
 |---|---|---|
 | **FortyGuard Temperature API** | Hyperlocal heat exposure (essential) | heatmap GeoJSON, `exceedance` hours |
-| **City of Phoenix Bus Stops** | Candidate sites | `STOP_ID`, `NBR_SHELTERS`, `RIDERSHIP`, point geometry |
-| **CDC/ATSDR SVI (2022, Arizona)** | Social vulnerability | tract `GEOID`, `RPL_THEMES` percentile, geometry |
+| **City of Phoenix Bus Stops** | Candidate sites | `STOP_ID`, `LOCATION`, `NBR_SHELTERS` (mostly null → stored as 0), `RIDERSHIP` (source-provided, unit unverified) |
+| **CDC/ATSDR SVI 2022 US tract** | Social vulnerability | tract `FIPS`, national `RPL_THEMES` percentile, geometry |
 
-Each ingestion records retrieval time, source URL, version, and checksum. **All bundled fixtures are synthetic** — shaped like the real datasets, labeled `DEMO_FIXTURE`, and must not be presented as official data. Verify each source's license and attribution terms before publishing any snapshot.
+Each ingestion records retrieval time, source URL, version, and checksum. **Bundled fixtures are synthetic** and labeled `DEMO_FIXTURE`. Production uses `LIVE` Phoenix GIS and CDC SVI snapshots joined to a `LIVE`/`CACHED_LIVE` FortyGuard heatmap. Verify each source's license and attribution terms before redistributing a snapshot.
 
 ## Deployment
 
-A multi‑stage `Dockerfile` builds the Vite assets and copies them into the FastAPI runtime image, so a single origin serves both `/api/*` and the app shell. Intended target is **Railway**: one public application service plus a separate PostGIS service over private networking, with `FORTYGUARD_API_KEY` and `DATABASE_URL` held only in protected service variables. Migrations and fixture seed run before the server accepts traffic.
+A multi‑stage `Dockerfile` builds the Vite assets and copies them into the FastAPI runtime image, so a single origin serves both `/api/*` and the app shell. Intended target is **Railway**: one public application service plus a separate PostGIS service over private networking, with `FORTYGUARD_API_KEY` and `DATABASE_URL` held only in protected service variables. Migrations and source bootstrap (live Phoenix+SVI in production, fixtures locally) run before the server accepts traffic.
 
 Public demo: `https://shadequeue-app-production.up.railway.app`
 
@@ -215,7 +215,7 @@ Public demo: `https://shadequeue-app-production.up.railway.app`
 - ✅ Backend: scoring, CP‑SAT optimizer (deterministic, reproducible), PostGIS spatial joins with GiST indexes, audit/provenance, credit‑protection controls, unit + integration tests.
 - ✅ Frontend talks to `/api/v1`. Runtime badges distinguish `LIVE`, `CACHED_LIVE`, and `DEMO_FIXTURE`.
 - ✅ Live FortyGuard submit envelope verified (`POST /v1/heatmap` → `data.activity_id`). Fixture mode remains the labeled fallback.
-- ⏳ Phoenix and SVI ingestion scripts exist; the public demo still uses labeled synthetic stops/tracts joined to the heat surface.
+- ✅ Production bootstrap ingests City of Phoenix bus-stop GIS and CDC/ATSDR SVI 2022 tracts, then removes `DEMO_FIXTURE` rows. Local/test still seed labeled fixtures. `NBR_SHELTERS` is mostly null in the city GIS and is stored as 0 with an explicit license note.
 - ✅ Railway single‑origin deploy: API + SPA.
 
 ## What ShadeQueue may and may not claim

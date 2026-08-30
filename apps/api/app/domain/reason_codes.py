@@ -25,10 +25,11 @@ HIGH_HEAT_HOURS_THRESHOLD: Final = 10.0
 #: SVI overall percentile rank at or beyond which a stop is labelled high
 #: social vulnerability.
 HIGH_SVI_PERCENTILE_THRESHOLD: Final = 0.85
-#: Source-provided ridership value at or beyond which a stop is labelled high
-#: ridership. The unit and period of this field are not yet verified, so the
-#: label deliberately says "source ridership".
-HIGH_RIDERSHIP_THRESHOLD: Final = 1500.0
+#: Fraction of the scenario's highest source ridership at or beyond which a
+#: stop is labelled high ridership. Absolute boardings cannot be used: the
+#: City of Phoenix GIS field is an unverified unit whose corridor max is far
+#: below the synthetic fixture scale.
+HIGH_RIDERSHIP_RELATIVE_THRESHOLD: Final = 0.75
 #: SVI percentile that makes a stop count toward the minimum equity share.
 EQUITY_FLOOR_PERCENTILE: Final = 0.75
 
@@ -38,7 +39,8 @@ REASON_CODE_LABELS: Final[dict[str, str]] = {
         f"SVI overall percentile at or above {HIGH_SVI_PERCENTILE_THRESHOLD:.2f}"
     ),
     HIGH_SOURCE_RIDERSHIP: (
-        f"Source-provided ridership value at or above {HIGH_RIDERSHIP_THRESHOLD:.0f}"
+        f"Source-provided ridership at or above {HIGH_RIDERSHIP_RELATIVE_THRESHOLD:.0%} "
+        "of the highest value in this scenario"
     ),
     EXISTING_SHELTER: "Already has at least one shelter, so it is excluded from new-shelter selection",
     EQUITY_FLOOR_ELIGIBLE: (

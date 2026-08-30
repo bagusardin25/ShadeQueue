@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     )
 
     app_env: str = "local"
+    #: auto = live sources in production, fixtures otherwise. live/fixture force one path.
+    source_mode: str = "auto"
+    refresh_sources: bool = False
 
     database_url: str = "postgresql+psycopg://shadequeue:shadequeue@127.0.0.1:55432/shadequeue"
 
