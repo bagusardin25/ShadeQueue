@@ -50,6 +50,11 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
     setFilter('all')
   }
 
+  const focusStop = (stopId: string) => {
+    onSelect(stopId)
+    document.getElementById('corridor-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   return (
     <section id="stops-table" className="border border-line bg-panel" aria-labelledby="stops-table-title">
       <div className="border-b border-line p-4">
@@ -57,6 +62,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-heat">Accessible map equivalent</p>
             <h2 id="stops-table-title" className="mt-1 text-lg font-extrabold tracking-[-0.03em]">Official corridor stops</h2>
+            <p className="mt-1 text-xs text-muted-ink">Click a stop to highlight it and fly the map there.</p>
           </div>
           <p className="text-xs text-muted-ink" aria-live="polite">{filteredStops.length} of {stops.length} shown</p>
         </div>
@@ -126,7 +132,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
                       <th scope="row" className="px-4 py-3 font-normal">
                         <button
                           type="button"
-                          onClick={() => onSelect(stop.stopId)}
+                          onClick={() => focusStop(stop.stopId)}
                           aria-pressed={isSelected}
                           className="min-h-11 cursor-pointer rounded-sm text-left font-bold leading-tight text-ink underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                         >
@@ -153,7 +159,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
                 <li key={stop.stopId} className={cn('p-3', isSelected && 'bg-[#e8f3ef]')}>
                   <button
                     type="button"
-                    onClick={() => onSelect(stop.stopId)}
+                    onClick={() => focusStop(stop.stopId)}
                     aria-pressed={isSelected}
                     className="w-full cursor-pointer rounded-sm p-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                   >

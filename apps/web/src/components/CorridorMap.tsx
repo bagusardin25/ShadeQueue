@@ -132,6 +132,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
   const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const onSelectRef = useRef(onSelect)
+  const focusedStopIdRef = useRef<string | null>(null)
   const [mapReady, setMapReady] = useState(false)
   const [mapFailed, setMapFailed] = useState(false)
   const layer = useMemo(() => numericHeatmap(heatmap), [heatmap])
@@ -310,11 +311,30 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
     }
   }, [mapReady, selectedStopId, stops])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || !selectedStopId) return
+    if (focusedStopIdRef.current === null) {
+      focusedStopIdRef.current = selectedStopId
+      return
+    }
+    if (focusedStopIdRef.current === selectedStopId) return
+    focusedStopIdRef.current = selectedStopId
+    const stop = stops.find((item) => item.stopId === selectedStopId)
+    if (!stop) return
+    map.easeTo({
+      center: [stop.longitude, stop.latitude],
+      zoom: Math.max(map.getZoom(), 14.2),
+      duration: 700,
+    })
+    popupRef.current?.setLngLat([stop.longitude, stop.latitude]).setHTML(popupHtml(stop)).addTo(map)
+  }, [mapReady, selectedStopId, stops])
+
   const lowLabel = `${range.min.toFixed(range.min >= 100 ? 0 : 1)} h`
   const highLabel = `${range.max.toFixed(range.max >= 100 ? 0 : 1)} h`
 
   return (
-    <section className="overflow-hidden border border-line bg-[#d7d2c4]" aria-labelledby="map-title">
+    <section id="corridor-map" className="overflow-hidden border border-line bg-[#d7d2c4]" aria-labelledby="map-title">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line bg-panel px-4 py-3">
         <div className="max-w-xl">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-muted-ink">
