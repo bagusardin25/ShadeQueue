@@ -1,12 +1,12 @@
 # Single-origin image: Vite SPA + FastAPI + fixture seed.
 
 # --- stage 1: frontend -------------------------------------------------------
-FROM node:22-alpine AS web
+FROM node:22-bookworm-slim AS web
 
 WORKDIR /src
 COPY package.json package-lock.json ./
 COPY apps/web/package.json apps/web/package.json
-RUN npm ci
+RUN npm ci --include=optional
 COPY apps/web ./apps/web
 RUN npm run build
 
