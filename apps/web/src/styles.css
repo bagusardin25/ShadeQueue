@@ -113,6 +113,53 @@ input[type="range"] {
   outline-offset: 3px;
 }
 
+.shelter-pin {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0 0.3rem;
+  border: 2px solid #fffdf7;
+  box-shadow: 0 2px 8px rgba(20, 41, 37, 0.45);
+  color: #fffdf7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.shelter-pin-new {
+  border-radius: 999px;
+  background: #0e6159;
+}
+
+.shelter-pin-existing {
+  border-radius: 0.25rem;
+  background: #4d5552;
+}
+
+.shelter-pin-candidate {
+  border-radius: 999px;
+  background: #c48a12;
+}
+
+.shelter-pin-selected {
+  outline: 3px solid #142925;
+  outline-offset: 1px;
+  transform: scale(1.12);
+}
+
+.maplibregl-popup-content {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #d7d4c7;
+  border-radius: 0.25rem;
+  box-shadow: 4px 4px 0 rgba(20, 41, 37, 0.12);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .metric-numeral {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

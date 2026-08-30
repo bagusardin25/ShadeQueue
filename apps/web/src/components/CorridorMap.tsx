@@ -58,10 +58,35 @@ function stopCollection(stops: Stop[], selectedStopId: string) {
         recommended: stop.selected ? 1 : 0,
         baseline: stop.baselineSelected ? 1 : 0,
         existingShelter: stop.shelterCount > 0 ? 1 : 0,
+        shelterCount: stop.shelterCount,
+        rank: stop.rank ?? 0,
         heat: stop.exceedanceHours,
+        ridership: stop.ridershipValue,
       },
     })),
   }
+}
+
+function shelterStatus(stop: Stop) {
+  if (stop.shelterCount > 0) return `Existing shelter (${stop.shelterCount} on site)`
+  if (stop.selected) return `New shelter · rank ${stop.rank}`
+  return 'No new shelter in this portfolio'
+}
+
+function markerLabel(stop: Stop) {
+  if (stop.selected) return String(stop.rank ?? '')
+  if (stop.shelterCount > 0) return `S${stop.shelterCount}`
+  return '·'
+}
+
+function popupHtml(stop: Stop) {
+  return `
+    <strong>${escapeHtml(stop.name)}</strong>
+    <div>${escapeHtml(shelterStatus(stop))}</div>
+    <div>${stop.exceedanceHours.toFixed(1)} exceedance hours</div>
+    <div>Ridership ${Math.round(stop.ridershipValue).toLocaleString('en-US')}</div>
+    <div style="color:#596963;font-size:0.72rem">${escapeHtml(stop.stopId)}</div>
+  `
 }
 
 function heatRange(heatmap: HeatmapLayer, stops: Stop[]) {
@@ -97,6 +122,7 @@ function heatFillColor(min: number, max: number) {
 export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeMode }: CorridorMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
+  const markersRef = useRef<maplibregl.Marker[]>([])
   const popupRef = useRef<maplibregl.Popup | null>(null)
   const onSelectRef = useRef(onSelect)
   const [mapReady, setMapReady] = useState(false)
@@ -135,7 +161,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           source: 'heatPolygons',
           paint: {
             'fill-color': heatFillColor(range.min, range.max) as never,
-            'fill-opacity': 0.7,
+            'fill-opacity': 0.38,
           },
         },
         {
@@ -145,23 +171,25 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           paint: { 'line-color': '#7a241c', 'line-width': 0.4, 'line-opacity': 0.35 },
         },
         {
+          id: 'stops-halo',
+          type: 'circle',
+          source: 'stops',
+          paint: {
+            'circle-radius': 14,
+            'circle-color': '#fffdf7',
+            'circle-opacity': 0.9,
+          },
+        },
+        {
           id: 'stops-layer',
           type: 'circle',
           source: 'stops',
           paint: {
-            'circle-radius': ['case', ['==', ['get', 'selected'], 1], 10, ['==', ['get', 'recommended'], 1], 8, 6],
-            'circle-color': [
-              'case',
-              ['==', ['get', 'selected'], 1],
-              '#062e2a',
-              ['==', ['get', 'existingShelter'], 1],
-              '#6d7672',
-              ['==', ['get', 'recommended'], 1],
-              '#0e6159',
-              '#e2a52b',
-            ],
-            'circle-stroke-color': '#fffdf7',
-            'circle-stroke-width': ['case', ['==', ['get', 'selected'], 1], 3, 2],
+            'circle-radius': 7,
+            'circle-color': '#c48a12',
+            'circle-stroke-color': '#142925',
+            'circle-stroke-width': 1.5,
+            'circle-opacity': 0.35,
           },
         },
       ],
@@ -177,7 +205,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
         cooperativeGestures: true,
       })
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
-      popupRef.current = new maplibregl.Popup({ closeButton: false, offset: 12, className: 'stop-popup' })
+      popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 18, className: 'stop-popup', maxWidth: '260px' })
 
       map.on('load', () => {
         map.resize()
@@ -186,24 +214,6 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
       map.on('click', 'stops-layer', (event: MapLayerMouseEvent) => {
         const stopId = event.features?.[0]?.properties.stopId
         if (typeof stopId === 'string') onSelectRef.current(stopId)
-      })
-      map.on('mousemove', 'stops-layer', (event: MapLayerMouseEvent) => {
-        map.getCanvas().style.cursor = 'pointer'
-        const feature = event.features?.[0]
-        if (!feature || !event.lngLat) return
-        const name = escapeHtml(String(feature.properties?.name ?? feature.properties?.stopId ?? 'Stop'))
-        const heat = asNumber(feature.properties?.heat)
-        const rank = feature.properties?.recommended === 1 ? 'Recommended' : 'Candidate'
-        popupRef.current
-          ?.setLngLat(event.lngLat)
-          .setHTML(
-            `<strong>${name}</strong><div>${heat.toFixed(1)} exceedance hours</div><div>${rank}</div>`,
-          )
-          .addTo(map)
-      })
-      map.on('mouseleave', 'stops-layer', () => {
-        map.getCanvas().style.cursor = ''
-        popupRef.current?.remove()
       })
       map.getCanvas().addEventListener('webglcontextlost', () => setMapFailed(true), { once: true })
       mapRef.current = map
@@ -217,6 +227,8 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
 
     return () => {
       observer.disconnect()
+      for (const marker of markersRef.current) marker.remove()
+      markersRef.current = []
       popupRef.current?.remove()
       mapRef.current?.remove()
       mapRef.current = null
@@ -247,6 +259,32 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
     if (!map || !mapReady) return
     const stopSource = map.getSource('stops') as GeoJSONSource | undefined
     stopSource?.setData(stopCollection(stops, selectedStopId))
+
+    for (const marker of markersRef.current) marker.remove()
+    markersRef.current = stops.map((stop) => {
+      const pin = document.createElement('button')
+      pin.type = 'button'
+      const kind = stop.shelterCount > 0 ? 'existing' : stop.selected ? 'new' : 'candidate'
+      pin.className = `shelter-pin shelter-pin-${kind}${stop.stopId === selectedStopId ? ' shelter-pin-selected' : ''}`
+      pin.textContent = markerLabel(stop)
+      pin.setAttribute(
+        'aria-label',
+        `${stop.name}. ${shelterStatus(stop)}. ${stop.exceedanceHours.toFixed(1)} exceedance hours.`,
+      )
+      pin.addEventListener('click', (event) => {
+        event.stopPropagation()
+        onSelectRef.current(stop.stopId)
+        popupRef.current?.setLngLat([stop.longitude, stop.latitude]).setHTML(popupHtml(stop)).addTo(map)
+      })
+      return new maplibregl.Marker({ element: pin, anchor: 'center' })
+        .setLngLat([stop.longitude, stop.latitude])
+        .addTo(map)
+    })
+
+    return () => {
+      for (const marker of markersRef.current) marker.remove()
+      markersRef.current = []
+    }
   }, [mapReady, selectedStopId, stops])
 
   const lowLabel = `${range.min.toFixed(range.min >= 100 ? 0 : 1)} h`
@@ -260,12 +298,11 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
             <MapIcon className="size-4 text-heat" aria-hidden="true" /> Phoenix corridor
           </p>
           <h2 id="map-title" className="mt-1 text-base font-extrabold tracking-[-0.02em]">
-            Heat polygons + recommended stops
+            Shelter pins on the heat surface
           </h2>
           <p className="mt-1 text-xs leading-5 text-muted-ink">
-            {heatCount
-              ? `${heatCount.toLocaleString('en-US')} FortyGuard cells · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}`
-              : 'Waiting for the heat surface.'}
+            Numbered pins = new shelters. Square S = already has a shelter.
+            {heatCount ? ` ${heatCount.toLocaleString('en-US')} FortyGuard cells · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}` : ''}
           </p>
         </div>
         <a href="#stops-table" className="pointer-events-auto app-link inline-flex min-h-11 items-center gap-2 bg-panel/95 px-3 text-xs shadow-sm">
@@ -303,9 +340,9 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
             </div>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-[0.6875rem] font-semibold text-muted-ink">
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full border-2 border-white bg-action" /> Recommended</span>
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-sun" /> Candidate</span>
-            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-[#6d7672]" /> Existing shelter</span>
+            <span className="flex items-center gap-1.5"><span className="grid size-5 place-items-center rounded-full bg-action text-[0.6rem] font-extrabold text-white">1</span> New shelter (rank)</span>
+            <span className="flex items-center gap-1.5"><span className="grid size-5 place-items-center rounded-sm bg-[#4d5552] text-[0.55rem] font-extrabold text-white">S</span> Existing shelter</span>
+            <span className="flex items-center gap-1.5"><span className="size-5 rounded-full bg-[#c48a12]" /> No new shelter</span>
           </div>
         </div>
       </div>
