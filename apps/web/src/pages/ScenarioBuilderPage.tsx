@@ -40,7 +40,8 @@ export function ScenarioBuilderPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [phase, setPhase] = useState('')
-  const [startDate, setStartDate] = useState('2024-07-15')
+  const [startDate, setStartDate] = useState('2024-07-01')
+  const [endDate, setEndDate] = useState('2024-07-31')
   const [bootstrap, setBootstrap] = useState<SourceBootstrap | null>(null)
   const [jobPreview, setJobPreview] = useState<HeatJob | null>(null)
 
@@ -75,7 +76,8 @@ export function ScenarioBuilderPage() {
       const job = await createHeatJob({
         aoi: bootstrap.allowedAoi,
         startDate,
-        filterType: 3,
+        endDate,
+        filterType: 4,
         thresholdFahrenheit: 104,
         analyticType: 'exceedance',
       })
@@ -183,7 +185,7 @@ export function ScenarioBuilderPage() {
                 </label>
 
                 <label>
-                  <span className="mb-1.5 block text-sm font-bold">Historical scenario</span>
+                  <span className="mb-1.5 block text-sm font-bold">Heat window start</span>
                   <input
                     className="field-control"
                     type="date"
@@ -191,6 +193,17 @@ export function ScenarioBuilderPage() {
                     max={bootstrap?.allowedDateMax ?? '2026-08-31'}
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
+                  />
+                </label>
+                <label>
+                  <span className="mb-1.5 block text-sm font-bold">Heat window end</span>
+                  <input
+                    className="field-control"
+                    type="date"
+                    min={bootstrap?.allowedDateMin ?? '2024-06-01'}
+                    max={bootstrap?.allowedDateMax ?? '2026-08-31'}
+                    value={endDate}
+                    onChange={(event) => setEndDate(event.target.value)}
                   />
                 </label>
 
