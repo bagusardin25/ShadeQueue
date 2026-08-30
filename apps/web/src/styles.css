@@ -117,16 +117,16 @@ input[type="range"] {
   appearance: none;
   display: grid;
   place-items: center;
-  min-width: 2.15rem;
-  min-height: 2.15rem;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
   z-index: 2;
-  padding: 0 0.35rem;
+  padding: 0 0.4rem;
   border: 2px solid #fffdf7;
   box-shadow: 0 3px 10px rgba(20, 41, 37, 0.5);
   color: #fffdf7;
   cursor: pointer;
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -157,13 +157,21 @@ input[type="range"] {
 }
 
 .maplibregl-popup-content {
-  padding: 0.75rem 0.9rem;
-  border: 1px solid #d7d4c7;
-  border-radius: 0.25rem;
-  box-shadow: 4px 4px 0 rgba(20, 41, 37, 0.12);
-  font-size: 0.85rem;
-  line-height: 1.45;
-  min-width: 12rem;
+  padding: 0.7rem 0.85rem 0.8rem;
+  border: 1px solid #142925;
+  border-radius: 0;
+  background: #fffdf7;
+  box-shadow: 4px 4px 0 rgba(20, 41, 37, 0.16);
+  color: #142925;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  min-width: 13rem;
+}
+
+.maplibregl-popup-content strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.9rem;
 }
 
 .metric-numeral {

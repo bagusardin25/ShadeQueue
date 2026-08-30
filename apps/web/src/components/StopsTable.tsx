@@ -62,7 +62,7 @@ export function StopsTable({ stops, selectedStopId, onSelect }: StopsTableProps)
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-heat">Accessible map equivalent</p>
             <h2 id="stops-table-title" className="mt-1 text-lg font-extrabold tracking-[-0.03em]">Official corridor stops</h2>
-            <p className="mt-1 text-xs text-muted-ink">Click a stop to highlight it and fly the map there.</p>
+            <p className="mt-1 text-xs text-muted-ink">Click a stop to fly the map there and show its shelter details.</p>
           </div>
           <p className="text-xs text-muted-ink" aria-live="polite">{filteredStops.length} of {stops.length} shown</p>
         </div>
