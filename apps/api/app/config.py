@@ -56,7 +56,7 @@ class Settings(BaseSettings):
 
     # --- frontend ---
     map_style_url: str = "https://demotiles.maplibre.org/style.json"
-    cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
+    cors_allow_origins: str = "http://127.0.0.1:5173,http://localhost:5173,https://shadequeue-web.vercel.app,https://shadequeue-app-production.up.railway.app"
 
     # --- optimizer ---
     solver_time_limit_seconds: float = 10.0
