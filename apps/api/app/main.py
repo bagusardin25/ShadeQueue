@@ -146,7 +146,13 @@ def create_app() -> FastAPI:
     app.include_router(v1_router)
 
     # Mounted last so every API route wins the path match.
-    mount_frontend(app, WEB_DIST_DIR)
+    if mount_frontend(app, WEB_DIST_DIR):
+        logger.info("Serving SPA from %s", WEB_DIST_DIR)
+    else:
+        logger.warning(
+            "SPA not mounted (%s/index.html missing). API-only mode. Run `npm run build`.",
+            WEB_DIST_DIR,
+        )
     return app
 
 

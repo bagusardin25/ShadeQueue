@@ -109,28 +109,29 @@ cp .env.example .env
 
 `.env` is gitignored — never commit secrets. Fixture mode works with no API key; leave `LIVE_PROVIDER_ENABLED=false` to run entirely on deterministic demo data.
 
-**1 — Database + backend** (terminal A):
+**1 — Database** (once):
 
 ```bash
 docker compose up -d                                       # PostGIS on localhost:55432
 uv sync --project apps/api                                 # create the Python 3.12 venv
+npm install
 uv run --project apps/api alembic upgrade head             # apply schema
 uv run --project apps/api python scripts/load_fixtures.py  # load demo data
-uv run --project apps/api python apps/api/serve.py         # http://127.0.0.1:8000
 ```
 
-**2 — Frontend** (terminal B):
+**2 — Serve API + UI from one origin:**
 
 ```bash
-npm install
-npm run dev                                                # http://localhost:5173
+npm run serve                                              # builds the SPA, then http://127.0.0.1:8000
 ```
 
-Vite proxies `/api` to the backend on port 8000, so the two processes are all you need. Open **http://localhost:5173** and follow the guided scenario.
+The same FastAPI process answers `/api/*` and the planner UI. Skip a rebuild with `SKIP_FRONTEND_BUILD=1`.
 
-- Frontend: http://localhost:5173
-- Backend: http://127.0.0.1:8000
+Hot-reload frontend during UI work (terminal B): `npm run dev` at http://localhost:5173, which proxies `/api` to port 8000.
+
+- App (API + SPA): http://127.0.0.1:8000
 - Interactive API docs: http://127.0.0.1:8000/api/docs
+- Vite HMR (optional): http://localhost:5173
 - PostGIS: `localhost:55432` (user/pass/db all `shadequeue`)
 
 ## Runtime modes

@@ -10,6 +10,8 @@
     "lint": "npm --workspace @shadequeue/web run lint",
     "typecheck": "npm --workspace @shadequeue/web run typecheck",
     "test": "npm --workspace @shadequeue/web run test",
-    "build": "npm --workspace @shadequeue/web run build"
+    "build": "npm --workspace @shadequeue/web run build",
+    "serve": "uv run --project apps/api python apps/api/serve.py",
+    "start": "uv run --project apps/api python apps/api/serve.py"
   }
 }
