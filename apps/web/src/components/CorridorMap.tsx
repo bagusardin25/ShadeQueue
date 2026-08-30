@@ -86,12 +86,14 @@ function markerLabel(stop: Stop, pinRank?: number) {
   return '·'
 }
 
-function popupHtml(stop: Stop) {
+function popupHtml(stop: Stop, pinRank?: number) {
+  const pin = pinRank ? `Pin ${pinRank} · ` : ''
   return `
     <strong>${escapeHtml(stop.name)}</strong>
-    <div>${escapeHtml(shelterStatus(stop))}</div>
-    <div>${stop.exceedanceHours.toFixed(1)} exceedance hours</div>
-    <div>Ridership ${Math.round(stop.ridershipValue).toLocaleString('en-US')}</div>
+    <div>${pin}${escapeHtml(shelterStatus(stop))}</div>
+    <div>${stop.exceedanceHours.toFixed(1)} hot hours</div>
+    <div>${Math.round(stop.ridershipValue).toLocaleString('en-US')} waiting (source value)</div>
+    <div>Neighborhood ${Math.round(stop.sviPercentile * 100)}th</div>
     <div style="color:#596963;font-size:0.72rem">${escapeHtml(stop.stopId)}</div>
   `
 }
@@ -169,7 +171,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           source: 'heatPolygons',
           paint: {
             'fill-color': heatFillColor(range.min, range.max) as never,
-            'fill-opacity': 0.38,
+            'fill-opacity': 0.26,
           },
         },
         {
@@ -185,9 +187,10 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           paint: {
             'circle-radius': [
               'case',
+              ['==', ['get', 'selected'], 1], 16,
               ['==', ['get', 'recommended'], 1], 0,
               ['==', ['get', 'existingShelter'], 1], 0,
-              11,
+              12,
             ],
             'circle-color': '#fffdf7',
             'circle-opacity': 0.92,
@@ -200,9 +203,10 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           paint: {
             'circle-radius': [
               'case',
+              ['==', ['get', 'selected'], 1], 8,
               ['==', ['get', 'recommended'], 1], 0,
               ['==', ['get', 'existingShelter'], 1], 0,
-              5.5,
+              6.5,
             ],
             'circle-color': '#c48a12',
             'circle-stroke-color': '#142925',
@@ -236,6 +240,12 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
       map.on('click', 'stops-halo', (event: MapLayerMouseEvent) => {
         const stopId = asStopId(event.features?.[0]?.properties?.stopId)
         if (stopId) onSelectRef.current(stopId)
+      })
+      map.on('mouseenter', 'stops-layer', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mouseleave', 'stops-layer', () => {
+        map.getCanvas().style.cursor = ''
       })
       map.getCanvas().addEventListener('webglcontextlost', () => setMapFailed(true), { once: true })
       mapRef.current = map
@@ -298,12 +308,22 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
       pin.addEventListener('click', (event) => {
         event.stopPropagation()
         onSelectRef.current(stop.stopId)
-        popupRef.current?.setLngLat([stop.longitude, stop.latitude]).setHTML(popupHtml(stop)).addTo(map)
+        popupRef.current
+          ?.setLngLat([stop.longitude, stop.latitude])
+          .setHTML(popupHtml(stop, pinRanks.get(stop.stopId)))
+          .addTo(map)
       })
-      return new maplibregl.Marker({ element: pin, anchor: 'center' })
+      return new maplibregl.Marker({ element: pin, anchor: 'bottom' })
         .setLngLat([stop.longitude, stop.latitude])
         .addTo(map)
     })
+    const selected = stops.find((item) => item.stopId === selectedStopId)
+    if (selected) {
+      popupRef.current
+        ?.setLngLat([selected.longitude, selected.latitude])
+        .setHTML(popupHtml(selected, pinRanks.get(selected.stopId)))
+        .addTo(map)
+    }
 
     return () => {
       for (const marker of markersRef.current) marker.remove()
@@ -327,11 +347,17 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
       zoom: Math.max(map.getZoom(), 14.2),
       duration: 700,
     })
-    popupRef.current?.setLngLat([stop.longitude, stop.latitude]).setHTML(popupHtml(stop)).addTo(map)
+    popupRef.current
+      ?.setLngLat([stop.longitude, stop.latitude])
+      .setHTML(popupHtml(stop, portfolioRankById(stops).get(stop.stopId)))
+      .addTo(map)
   }, [mapReady, selectedStopId, stops])
 
   const lowLabel = `${range.min.toFixed(range.min >= 100 ? 0 : 1)} h`
   const highLabel = `${range.max.toFixed(range.max >= 100 ? 0 : 1)} h`
+  const pinRanks = portfolioRankById(stops)
+  const selectedStop = stops.find((stop) => stop.stopId === selectedStopId)
+  const selectedPin = selectedStop ? pinRanks.get(selectedStop.stopId) : undefined
 
   return (
     <section id="corridor-map" className="overflow-hidden border border-line bg-[#d7d2c4]" aria-labelledby="map-title">
@@ -375,10 +401,39 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
         </div>
       )}
 
+      {selectedStop ? (
+        <div className="grid gap-px border-t border-line bg-line sm:grid-cols-4" aria-live="polite">
+          <div className="bg-panel px-4 py-3">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">
+              {selectedPin ? `Pin ${selectedPin}` : 'Stop'}
+            </p>
+            <p className="mt-1 text-sm font-extrabold leading-5">{selectedStop.name}</p>
+            <p className="mt-0.5 font-mono text-[0.68rem] text-muted-ink">{selectedStop.stopId}</p>
+          </div>
+          <div className="bg-panel px-4 py-3">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Shelter</p>
+            <p className="mt-1 text-sm font-bold leading-5">{shelterStatus(selectedStop)}</p>
+          </div>
+          <div className="bg-panel px-4 py-3">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Hot hours</p>
+            <p className="metric-numeral mt-1 text-lg font-bold">{selectedStop.exceedanceHours.toFixed(1)}</p>
+          </div>
+          <div className="bg-panel px-4 py-3">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Waiting · neighborhood</p>
+            <p className="metric-numeral mt-1 text-lg font-bold">
+              {Math.round(selectedStop.ridershipValue).toLocaleString('en-US')}
+              <span className="ml-2 text-sm font-semibold text-muted-ink">
+                {Math.round(selectedStop.sviPercentile * 100)}th
+              </span>
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="border-t border-line bg-panel px-4 py-3">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-[12rem] flex-1">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Exceedance hours</p>
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-ink">Hot hours</p>
             <div className="mt-1.5 h-2 rounded-sm bg-[linear-gradient(90deg,#f6de8a,#e08a3c,#c2462f,#6d1b1b)]" aria-hidden="true" />
             <div className="mt-1 flex justify-between font-mono text-[0.65rem] font-bold">
               <span>{lowLabel}</span>
