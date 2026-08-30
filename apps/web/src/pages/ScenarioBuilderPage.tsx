@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
@@ -10,12 +10,24 @@ import {
   SlidersHorizontal,
   ThermometerSun,
 } from 'lucide-react'
-import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
+import { Badge } from '../components/ui/badge'
+import {
+  ApiError,
+  createHeatJob,
+  createRun,
+  createScenario,
+  getSourceSnapshots,
+  modeLabel,
+  rememberSession,
+  waitForHeatJob,
+  type HeatJob,
+  type SourceBootstrap,
+} from '../lib/api'
 
 const flowSteps = [
   { icon: MapPinned, label: 'Scope', detail: 'One approved Phoenix corridor' },
-  { icon: ThermometerSun, label: 'Exposure', detail: 'Fixture heat exceedance values' },
+  { icon: ThermometerSun, label: 'Exposure', detail: 'FortyGuard exceedance hours' },
   { icon: SlidersHorizontal, label: 'Allocate', detail: 'Slots + transparent equity rule' },
   { icon: FileSearch, label: 'Review', detail: 'Map, table, and stop-level audit' },
 ]
@@ -27,22 +39,71 @@ export function ScenarioBuilderPage() {
   const [minimumEquityShare, setMinimumEquityShare] = useState(40)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [phase, setPhase] = useState('')
+  const [startDate, setStartDate] = useState('2024-07-15')
+  const [bootstrap, setBootstrap] = useState<SourceBootstrap | null>(null)
+  const [jobPreview, setJobPreview] = useState<HeatJob | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getSourceSnapshots()
+      .then((value) => {
+        if (cancelled) return
+        setBootstrap(value)
+        setStartDate((current) => (current < value.allowedDateMin ? value.allowedDateMin : current))
+      })
+      .catch(() => {
+        if (!cancelled) setBootstrap(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError('')
-    if (minimumEquityShare > 60) {
-      setError('The fixture supports an equity-share constraint up to 60%. Lower the value to continue.')
+    setPhase('')
+    setJobPreview(null)
+    if (!bootstrap) {
+      setError('The planning API is not reachable yet. Confirm the backend is up, then retry.')
       return
     }
     setSubmitting(true)
-    await new Promise((resolve) => window.setTimeout(resolve, 420))
-    const params = new URLSearchParams({
-      slots: shelterSlots.toString(),
-      equity: (equityWeight / 100).toString(),
-      share: (minimumEquityShare / 100).toString(),
-    })
-    navigate(`/scenarios/phoenix-central-fixture?${params.toString()}`)
+    try {
+      setPhase('Submitting heatmap job to FortyGuard…')
+      const job = await createHeatJob({
+        aoi: bootstrap.allowedAoi,
+        startDate,
+        filterType: 3,
+        thresholdFahrenheit: 104,
+        analyticType: 'exceedance',
+      })
+      setJobPreview(job)
+      setPhase(
+        job.runtimeMode === 'DEMO_FIXTURE'
+          ? 'Waiting on the deterministic heat surface…'
+          : 'Polling FortyGuard until the heat surface is ready…',
+      )
+      const completed = await waitForHeatJob(job.jobId, setJobPreview)
+      setPhase('Solving the constrained shelter portfolio with CP-SAT…')
+      const scenario = await createScenario({
+        heatJobId: completed.jobId,
+        name: 'Central Phoenix heat scenario',
+        shelterSlots,
+        equityWeight: equityWeight / 100,
+        minimumEquityShare: minimumEquityShare / 100,
+      })
+      const run = await createRun(scenario.scenarioId)
+      rememberSession(scenario.scenarioId, run.runId)
+      navigate(`/scenarios/${scenario.scenarioId}?run=${run.runId}`)
+    } catch (cause) {
+      const message = cause instanceof ApiError ? cause.message : 'The scenario could not be built.'
+      setError(message)
+      setPhase('')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -53,7 +114,10 @@ export function ScenarioBuilderPage() {
         <div className="relative mx-auto grid max-w-[100rem] gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(28rem,0.95fr)] lg:items-start lg:px-8 lg:py-16">
           <div className="max-w-2xl pt-1 lg:pt-4">
             <p className="mb-4 text-xs font-bold uppercase tracking-[0.15em] text-heat">
-              Guided demo · 01 <span className="mx-2 text-line">|</span> <span className="text-muted-ink">No live credits used</span>
+              Guided demo · 01 <span className="mx-2 text-line">|</span>{' '}
+              <span className="text-muted-ink">
+                {bootstrap?.liveProviderEnabled ? 'Live FortyGuard heatmap' : 'Fixture heat surface · live switch off'}
+              </span>
             </p>
             <h1 className="mt-2 max-w-2xl text-[clamp(2.7rem,7vw,5.8rem)] font-black leading-[0.92] tracking-[-0.09em]">
               Put limited shade where <span className="text-heat">heat burden</span> converges.
@@ -93,7 +157,11 @@ export function ScenarioBuilderPage() {
                 </div>
                 <DatabaseZap className="size-6 text-action" aria-hidden="true" />
               </div>
-              <p className="mt-2 text-sm leading-6 text-muted-ink">Inputs that rely on live data are locked to the deterministic fixture envelope.</p>
+              <p className="mt-2 text-sm leading-6 text-muted-ink">
+                {bootstrap
+                  ? `Corridor locked to ${bootstrap.allowedAoiName}. Heat comes from the Temperature API when live mode is on.`
+                  : 'Waiting for the planning API. The form stays disabled until source snapshots load.'}
+              </p>
             </div>
 
             <div className="space-y-5 p-5 sm:p-6">
@@ -109,12 +177,21 @@ export function ScenarioBuilderPage() {
                   <select className="field-control" defaultValue="central-phoenix">
                     <option value="central-phoenix">Central / 7th Avenue corridor · Phoenix</option>
                   </select>
-                  <span className="mt-1.5 block text-xs text-muted-ink">Only the approved fixture AOI is available in this frontend phase.</span>
+                  <span className="mt-1.5 block text-xs text-muted-ink">
+                    Predeclared Phoenix envelope · max {bootstrap?.maxAoiAreaKm2 ?? 25} km².
+                  </span>
                 </label>
 
                 <label>
                   <span className="mb-1.5 block text-sm font-bold">Historical scenario</span>
-                  <input className="field-control" type="date" value="2026-07-15" readOnly />
+                  <input
+                    className="field-control"
+                    type="date"
+                    min={bootstrap?.allowedDateMin ?? '2024-06-01'}
+                    max={bootstrap?.allowedDateMax ?? '2026-08-31'}
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                  />
                 </label>
 
                 <label>
@@ -188,15 +265,41 @@ export function ScenarioBuilderPage() {
               </fieldset>
 
               <div className="border border-[#8d4f09]/25 bg-[#fff6df] p-3 text-xs leading-5 text-[#66420d]">
-                <strong>Fixture mode is persistent:</strong> no live FortyGuard request, official data fetch, or optimizer execution occurs in this browser-only phase.
+                {bootstrap?.liveProviderEnabled ? (
+                  <>
+                    <strong>Live mode:</strong> this run spends a FortyGuard heatmap credit, then CP-SAT
+                    selects the shelter portfolio. The runtime badge never labels a fixture as live.
+                  </>
+                ) : (
+                  <>
+                    <strong>Fixture mode:</strong> the same submit-and-poll contract runs against a
+                    deterministic heat surface. Enable live mode on the server to spend API credit.
+                  </>
+                )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={submitting} aria-busy={submitting}>
-                {submitting ? 'Validating fixture inputs…' : 'Build fixture portfolio'}
+              {jobPreview ? (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <Badge tone={jobPreview.runtimeMode === 'DEMO_FIXTURE' ? 'fixture' : 'success'}>
+                    {modeLabel(jobPreview.runtimeMode)}
+                  </Badge>
+                  <span className="font-mono text-muted-ink">{jobPreview.state}</span>
+                  {jobPreview.providerActivityId ? (
+                    <span className="font-mono text-muted-ink">activity {jobPreview.providerActivityId.slice(0, 8)}</span>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <Button type="submit" className="w-full" disabled={submitting || !bootstrap} aria-busy={submitting}>
+                {submitting ? phase || 'Working…' : 'Build heat-aware portfolio'}
                 {!submitting ? <ArrowRight className="size-4" aria-hidden="true" /> : null}
               </Button>
               <p className="text-center text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-muted-ink" aria-live="polite">
-                {submitting ? 'Preparing deterministic corridor data' : 'No account · no procurement action · no live API credit'}
+                {submitting
+                  ? phase
+                  : bootstrap?.liveProviderEnabled
+                    ? 'Live heatmap · CP-SAT solver · human review only'
+                    : 'Fixture heatmap · CP-SAT solver · human review only'}
               </p>
             </div>
           </form>

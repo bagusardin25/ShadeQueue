@@ -4,9 +4,9 @@ import { formatNumber } from '../lib/utils'
 import { Badge } from './ui/badge'
 
 const reasonLabels: Record<string, string> = {
-  HIGH_HEAT_EXPOSURE: 'High fixture heat exposure',
-  HIGH_SOCIAL_VULNERABILITY: 'High fixture SVI percentile',
-  HIGH_SOURCE_RIDERSHIP: 'High source-provided value',
+  HIGH_HEAT_EXPOSURE: 'High heat exposure',
+  HIGH_SOCIAL_VULNERABILITY: 'High SVI percentile',
+  HIGH_SOURCE_RIDERSHIP: 'High source-provided ridership',
   EXISTING_SHELTER: 'Existing shelter excludes a new allocation',
   BALANCED_PORTFOLIO_VALUE: 'Balanced value across score components',
 }

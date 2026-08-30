@@ -230,7 +230,7 @@ async def test_an_aoi_outside_the_corridor_is_rejected(clean_db):
 
 async def test_a_date_outside_the_approved_window_is_rejected(clean_db):
     async with await _client() as client:
-        response = await client.post("/api/v1/heat-jobs", json=_job_request(startDate="2026-01-05"))
+        response = await client.post("/api/v1/heat-jobs", json=_job_request(startDate="2026-12-01"))
     assert response.status_code == 422
     assert response.json()["code"] == "DATE_NOT_ALLOWED"
 
@@ -303,6 +303,12 @@ async def test_fixture_scenario_to_optimized_portfolio_and_export(seeded_db, fas
         assert [s["stopId"] for s in reread["stops"] if s["selected"]] == [
             s["stopId"] for s in selected
         ]
+
+        heatmap = await client.get(f"/api/v1/heat-jobs/{job['jobId']}/heatmap")
+        assert heatmap.status_code == 200
+        layer = heatmap.json()
+        assert layer["type"] == "FeatureCollection"
+        assert len(layer["features"]) >= 1
 
         export = await client.get(f"/api/v1/portfolio-runs/{run['runId']}/export.csv")
         assert export.status_code == 200

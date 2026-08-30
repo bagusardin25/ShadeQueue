@@ -13,3 +13,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+kebutuhan_form_submit_project.md
+scripts/probe_fortyguard_live.py
+fixtures/_live_status_shape.json

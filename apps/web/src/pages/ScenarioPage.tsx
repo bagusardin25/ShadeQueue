@@ -7,8 +7,8 @@ import { StopAuditPanel } from '../components/StopAuditPanel'
 import { StopsTable } from '../components/StopsTable'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { loadScenarioFixture } from '../data/fixture'
 import { formatDateTime } from '../lib/utils'
+import { isUuid, loadFixtureView, loadLiveScenario, modeLabel } from '../lib/api'
 
 function asFiniteNumber(value: string | null, fallback: number) {
   const parsed = Number(value)
@@ -45,8 +45,13 @@ export function ScenarioPage() {
     [searchParams],
   )
   const query = useQuery({
-    queryKey: ['scenario', scenarioId, fixtureOptions],
-    queryFn: () => loadScenarioFixture(fixtureOptions),
+    queryKey: ['scenario', scenarioId, searchParams.get('run'), fixtureOptions],
+    queryFn: async () => {
+      if (isUuid(scenarioId)) {
+        return loadLiveScenario(scenarioId, searchParams.get('run') ?? undefined)
+      }
+      return loadFixtureView(fixtureOptions)
+    },
   })
 
   if (query.isPending) return <ScenarioLoading />
@@ -108,18 +113,21 @@ export function ScenarioPage() {
       <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.11em] text-muted-ink">
         <Link to="/scenarios/new" className="inline-flex min-h-10 items-center hover:text-ink hover:underline">Scenarios</Link>
         <span aria-hidden="true">/</span>
-        <span>Central Phoenix fixture</span>
+        <span>{data.corridorName}</span>
       </div>
 
       <header className="mt-5 flex flex-col gap-5 border-b border-line pb-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
-            Demo fixture <span className="text-line">|</span> Ready for review
+            {modeLabel(data.runtimeMode)} <span className="text-line">|</span> {data.solverStatus}
           </p>
           <h1 className="text-[clamp(2.2rem,5vw,4.4rem)] font-black leading-none tracking-[-0.09em]">Central / 7th Avenue</h1>
           <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-ink">
             <span className="inline-flex items-center gap-1.5"><Clock3 className="size-4" aria-hidden="true" /> Completed {formatDateTime(data.completedAt)} MST</span>
-            <span className="inline-flex items-center gap-1.5"><Database className="size-4" aria-hidden="true" /> Deterministic contract fixture</span>
+            <span className="inline-flex items-center gap-1.5"><Database className="size-4" aria-hidden="true" /> {data.heatCellCount ? `${data.heatCellCount} heat cells` : data.formulaVersion}</span>
+            {data.providerActivityId ? (
+              <span className="inline-flex items-center gap-1.5 font-mono">FortyGuard {data.providerActivityId.slice(0, 8)}</span>
+            ) : null}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -137,7 +145,7 @@ export function ScenarioPage() {
           ['Allocated', `${selectedCount} / ${eligibleCount}`, `${data.stops.length - eligibleCount} existing shelters excluded`],
           ['Proxy objective', data.objectiveValue.toFixed(1), `${gain >= 0 ? '+' : ''}${gain.toFixed(1)}% vs ridership baseline`],
           ['High-SVI share', `${Math.round(highEquityShare * 100)}%`, `Constraint ≥ ${Math.round(data.minimumEquityShare * 100)}%`],
-          ['Solver fixture', data.solverStatus, `${data.formulaVersion}`],
+          ['Solver', data.solverStatus, data.formulaVersion],
         ].map(([label, value, detail]) => (
           <article key={label} className="bg-panel p-4 sm:p-5">
             <p className="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted-ink">{label}</p>
@@ -148,7 +156,13 @@ export function ScenarioPage() {
       </section>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(30rem,0.88fr)]">
-        <CorridorMap stops={data.stops} selectedStopId={currentStopId} onSelect={setSelectedStopId} />
+        <CorridorMap
+          stops={data.stops}
+          selectedStopId={currentStopId}
+          onSelect={setSelectedStopId}
+          heatmap={data.heatmap}
+          runtimeMode={data.runtimeMode}
+        />
         <StopsTable stops={data.stops} selectedStopId={currentStopId} onSelect={setSelectedStopId} />
       </div>
 
@@ -159,7 +173,7 @@ export function ScenarioPage() {
       <section className="mt-5 border border-line bg-panel-raised" aria-labelledby="sources-title">
         <details className="group">
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:px-5">
-            <span id="sources-title">Source versions and fixture evidence</span>
+            <span id="sources-title">Source versions and evidence</span>
             <span className="text-xs font-bold uppercase tracking-[0.1em] text-muted-ink group-open:hidden">Expand</span>
             <span className="hidden text-xs font-bold uppercase tracking-[0.1em] text-muted-ink group-open:inline">Collapse</span>
           </summary>

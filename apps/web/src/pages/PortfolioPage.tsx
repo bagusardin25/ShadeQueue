@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -12,8 +13,9 @@ import {
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
-import { createScenarioFixture, type Stop } from '../data/fixture'
+import { type Stop } from '../data/fixture'
 import { formatDateTime, formatNumber } from '../lib/utils'
+import { exportCsvUrl, isUuid, loadFixtureView, loadLivePortfolio, modeLabel } from '../lib/api'
 
 function finiteParam(value: string | null, fallback: number) {
   const parsed = Number(value)
@@ -36,15 +38,41 @@ export function PortfolioPage() {
   const { runId = 'portfolio-fixture-001' } = useParams()
   const [searchParams] = useSearchParams()
   const [exportStatus, setExportStatus] = useState('')
-  const data = useMemo(
-    () =>
-      createScenarioFixture({
-        shelterSlots: finiteParam(searchParams.get('slots'), 10),
-        equityWeight: finiteParam(searchParams.get('equity'), 0.45),
-        minimumEquityShare: finiteParam(searchParams.get('share'), 0.4),
-      }),
+  const fixtureOptions = useMemo(
+    () => ({
+      shelterSlots: finiteParam(searchParams.get('slots'), 10),
+      equityWeight: finiteParam(searchParams.get('equity'), 0.45),
+      minimumEquityShare: finiteParam(searchParams.get('share'), 0.4),
+    }),
     [searchParams],
   )
+  const query = useQuery({
+    queryKey: ['portfolio', runId, fixtureOptions],
+    queryFn: () => (isUuid(runId) ? loadLivePortfolio(runId) : Promise.resolve(loadFixtureView(fixtureOptions))),
+  })
+  const data = query.data
+  if (query.isPending || !data) {
+    return (
+      <div className="mx-auto max-w-[100rem] px-4 py-10 sm:px-6 lg:px-8" aria-busy="true">
+        <div className="skeleton h-6 w-48" />
+        <div className="skeleton mt-6 h-16 max-w-2xl" />
+        <div className="skeleton mt-8 h-48" />
+      </div>
+    )
+  }
+  if (query.isError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+        <section className="border border-danger/50 bg-panel p-6 sm:p-8">
+          <h1 className="text-3xl font-extrabold">The portfolio could not be loaded.</h1>
+          <p className="mt-3 text-muted-ink">{query.error.message}</p>
+          <Link to="/scenarios/new" className="mt-6 inline-flex min-h-11 items-center font-bold text-action">
+            Start a new scenario
+          </Link>
+        </section>
+      </div>
+    )
+  }
   const selectedStops = data.stops.filter((stop) => stop.selected).sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))
   const baselineStops = data.stops.filter((stop) => stop.baselineSelected)
   const baselineOnly = baselineStops.filter((stop) => !stop.selected)
@@ -54,7 +82,26 @@ export function PortfolioPage() {
   const highEquityCount = selectedStops.filter((stop) => stop.sviPercentile >= 0.75).length
   const scenarioQuery = searchParams.toString()
 
-  const handleExport = () => {
+  const handleExport = async () => {
+    if (isUuid(runId)) {
+      try {
+        const response = await fetch(exportCsvUrl(runId))
+        if (!response.ok) throw new Error('export failed')
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = `shadequeue-${runId}.csv`
+        document.body.append(anchor)
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(url)
+        setExportStatus('Review CSV downloaded from the planning API.')
+      } catch {
+        setExportStatus('Export failed. No file was downloaded; try again.')
+      }
+      return
+    }
     try {
       const headings = [
         'rank',
@@ -107,20 +154,20 @@ export function PortfolioPage() {
       <header className="mt-5 grid gap-6 border-b border-line pb-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <p className="mb-3 flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-action">
-            Demo fixture <span className="text-line">|</span> Contract status: {data.solverStatus}
+            {modeLabel(data.runtimeMode)} <span className="text-line">|</span> {data.solverStatus}
           </p>
           <h1 className="max-w-4xl text-[clamp(2.6rem,6vw,5.4rem)] font-black leading-[0.92] tracking-[-0.09em]">
             {selectedStops.length} allocations. <span className="text-heat">Every one auditable.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-muted-ink">
-            Compare the ridership-only proxy baseline with the constraint-aware fixture portfolio, then export a review packet for human deliberation.
+            Compare the ridership-only proxy baseline with the constraint-aware portfolio, then export a review packet for human deliberation.
           </p>
         </div>
         <div className="lg:text-right">
           <Button onClick={handleExport} className="w-full sm:w-auto">
             <Download className="size-4" aria-hidden="true" /> Download review CSV
           </Button>
-          <p className="mt-2 text-xs text-muted-ink">Exports fixture data only</p>
+          <p className="mt-2 text-xs text-muted-ink">{isUuid(runId) ? 'Exports the auditable API packet' : 'Exports fixture data only'}</p>
         </div>
       </header>
 
@@ -153,7 +200,7 @@ export function PortfolioPage() {
         <article className="bg-[#eaf4f1] p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.13em] text-action">Fixture portfolio</p>
+              <p className="text-xs font-bold uppercase tracking-[0.13em] text-action">Optimized portfolio</p>
               <h2 className="mt-1 text-xl font-extrabold">Heat + demand + equity</h2>
             </div>
             <FileCheck2 className="size-5 text-action" aria-hidden="true" />
@@ -163,7 +210,7 @@ export function PortfolioPage() {
             <Badge tone="success" className="mb-1">+{gain.toFixed(1)}%</Badge>
           </div>
           <div className="mt-3 h-2 bg-[#cbded8]" aria-hidden="true"><div className="h-full w-full bg-action" /></div>
-          <p className="mt-3 text-xs leading-5 text-muted-ink">Objective coverage for this deterministic UI fixture, not measured impact.</p>
+          <p className="mt-3 text-xs leading-5 text-muted-ink">Objective coverage for this run, not measured health impact.</p>
         </article>
 
         <article className="bg-panel p-5 sm:p-6">
@@ -183,7 +230,7 @@ export function PortfolioPage() {
               <p className="text-xs font-bold uppercase tracking-[0.13em] text-heat">Recommended review set</p>
               <h2 id="selected-stops-title" className="mt-1 text-2xl font-extrabold tracking-[-0.035em]">Selected stops</h2>
             </div>
-            <p className="text-xs text-muted-ink">Sorted by fixture portfolio rank</p>
+            <p className="text-xs text-muted-ink">Sorted by portfolio rank</p>
           </div>
           <ol className="divide-y divide-line">
             {selectedStops.map((stop) => (
@@ -219,7 +266,7 @@ export function PortfolioPage() {
                   ['Existing shelters', 'Excluded'],
                   ['Equity weight', `${Math.round(data.equityWeight * 100)}%`],
                   ['Minimum high-SVI share', `${Math.round(data.minimumEquityShare * 100)}%`],
-                  ['Fixture solver state', data.solverStatus],
+                  ['Solver state', data.solverStatus],
                   ['Formula', data.formulaVersion],
                 ].map(([term, value]) => (
                   <div key={term} className="flex items-start justify-between gap-5 border-b border-line pb-3 last:border-0 last:pb-0">
@@ -257,8 +304,12 @@ export function PortfolioPage() {
         <div className="grid gap-5 md:grid-cols-[auto_1fr_auto] md:items-center">
           <div className="grid size-12 place-items-center border border-action bg-[#eaf4f1] text-action"><FileCheck2 aria-hidden="true" /></div>
           <div>
-            <h2 id="audit-stamp-title" className="font-extrabold">Fixture audit stamp</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-ink">Created {formatDateTime(data.completedAt)} MST · runtime {data.runtimeMode} · no live provider activity ID · no backend persistence</p>
+            <h2 id="audit-stamp-title" className="font-extrabold">Audit stamp</h2>
+            <p className="mt-1 text-xs leading-5 text-muted-ink">
+              Created {formatDateTime(data.completedAt)} MST · runtime {data.runtimeMode}
+              {data.providerActivityId ? ` · FortyGuard ${data.providerActivityId.slice(0, 8)}` : ''}
+              {data.solverVersion ? ` · ${data.solverVersion}` : ''}
+            </p>
           </div>
           <span className="font-mono text-xs font-bold text-muted-ink">{runId}</span>
         </div>

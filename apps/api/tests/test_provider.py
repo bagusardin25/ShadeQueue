@@ -117,6 +117,7 @@ def test_an_empty_activity_id_is_malformed():
         ("completed", ProviderStatusValue.COMPLETED),
         ("SUCCESS", ProviderStatusValue.COMPLETED),
         ("in-progress", ProviderStatusValue.PROCESSING),
+        ("Processing", ProviderStatusValue.PROCESSING),
         ("queued", ProviderStatusValue.PROCESSING),
         ("FAILED", ProviderStatusValue.FAILED),
         ("banana", None),
@@ -130,6 +131,72 @@ def test_processing_status_carries_no_cells():
     result = parse_status_response({"activity_id": "a1", "status": "processing"})
     assert result.status == ProviderStatusValue.PROCESSING
     assert result.cells == []
+
+
+def test_live_submit_envelope_from_fortyguard():
+    activity_id = parse_submit_response(
+        {
+            "error": False,
+            "status_code": 200,
+            "message": "Heatmap Submitted Successfully",
+            "data": {"activity_id": "4abafc9b-d8ae-465c-a8d2-8b5ea884135e"},
+        }
+    )
+    assert activity_id == "4abafc9b-d8ae-465c-a8d2-8b5ea884135e"
+
+
+def test_live_processing_envelope_from_fortyguard():
+    result = parse_status_response(
+        {
+            "error": False,
+            "status_code": 200,
+            "message": "Processing",
+            "data": {"activity_id": "abc", "status": "Processing"},
+        }
+    )
+    assert result.status == ProviderStatusValue.PROCESSING
+    assert result.activity_id == "abc"
+
+
+def test_live_completed_envelope_reads_nested_map_data():
+    result = parse_status_response(
+        {
+            "error": False,
+            "status_code": 200,
+            "message": "Completed",
+            "data": {
+                "activity_id": "abc",
+                "status": "Completed",
+                "result": {
+                    "map_data": {
+                        "type": "FeatureCollection",
+                        "features": [
+                            {
+                                "type": "Feature",
+                                "geometry": {
+                                    "type": "Polygon",
+                                    "coordinates": [[
+                                        [-112.08, 33.45],
+                                        [-112.07, 33.45],
+                                        [-112.07, 33.46],
+                                        [-112.08, 33.46],
+                                        [-112.08, 33.45],
+                                    ]],
+                                },
+                                "properties": {"tile_id": "t1", "value": 4.0},
+                            }
+                        ],
+                    },
+                    "stats_data": {"analytic_type": "exceedance", "units": "hour", "n_cells": 1},
+                },
+            },
+        }
+    )
+    assert result.status == ProviderStatusValue.COMPLETED
+    assert result.activity_id == "abc"
+    assert result.metric_name == "value"
+    assert len(result.cells) == 1
+    assert result.cells[0].metric_value == 4.0
 
 
 def test_failed_status_captures_the_provider_message():

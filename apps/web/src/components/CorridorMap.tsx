@@ -4,6 +4,8 @@ import type { GeoJSONSource, Map as MapLibreMap, MapLayerMouseEvent, StyleSpecif
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import { Keyboard, Map as MapIcon, TriangleAlert } from 'lucide-react'
 import type { Stop } from '../data/fixture'
+import type { HeatmapLayer } from '../lib/api'
+import { modeLabel } from '../lib/api'
 
 maplibregl.setWorkerUrl(maplibreWorkerUrl)
 
@@ -11,6 +13,8 @@ interface CorridorMapProps {
   stops: Stop[]
   selectedStopId: string
   onSelect: (stopId: string) => void
+  heatmap?: HeatmapLayer | null
+  runtimeMode?: string
 }
 
 function stopCollection(stops: Stop[], selectedStopId: string) {
@@ -107,7 +111,9 @@ const corridorCollection = {
   ],
 }
 
-export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProps) {
+const emptyHeat: HeatmapLayer = { type: 'FeatureCollection', features: [] }
+
+export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeMode }: CorridorMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const onSelectRef = useRef(onSelect)
@@ -128,6 +134,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
         streets: { type: 'geojson', data: streetCollection },
         corridor: { type: 'geojson', data: corridorCollection },
         heat: { type: 'geojson', data: heatCollection(stops) },
+        heatPolygons: { type: 'geojson', data: heatmap ?? emptyHeat },
         stops: { type: 'geojson', data: stopCollection(stops, initialSelectedStopId.current) },
       },
       layers: [
@@ -141,6 +148,33 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
           type: 'line',
           source: 'streets',
           paint: { 'line-color': '#cbc7ba', 'line-width': 1.2, 'line-opacity': 0.75 },
+        },
+        {
+          id: 'heat-polygons-fill',
+          type: 'fill',
+          source: 'heatPolygons',
+          paint: {
+            'fill-color': [
+              'interpolate',
+              ['linear'],
+              ['coalesce', ['get', 'value'], 0],
+              0,
+              '#f5d887',
+              6,
+              '#eda052',
+              10,
+              '#d55b3d',
+              14,
+              '#862c29',
+            ],
+            'fill-opacity': 0.38,
+          },
+        },
+        {
+          id: 'heat-polygons-line',
+          type: 'line',
+          source: 'heatPolygons',
+          paint: { 'line-color': '#9d2f20', 'line-width': 0.6, 'line-opacity': 0.45 },
         },
         {
           id: 'heat-layer',
@@ -243,6 +277,13 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
     if (!map || !mapReady) return
     const source = map.getSource('stops') as GeoJSONSource | undefined
     source?.setData(stopCollection(stops, selectedStopId))
+    const heatSource = map.getSource('heatPolygons') as GeoJSONSource | undefined
+    heatSource?.setData(heatmap ?? emptyHeat)
+    const pointHeat = map.getSource('heat') as GeoJSONSource | undefined
+    pointHeat?.setData(heatCollection(stops))
+    if (map.getLayer('heat-layer')) {
+      map.setLayoutProperty('heat-layer', 'visibility', heatmap?.features.length ? 'none' : 'visible')
+    }
     const selected = stops.find((stop) => stop.stopId === selectedStopId)
     if (!selected) return
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -251,7 +292,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
       zoom: Math.max(map.getZoom(), 12.8),
       duration: reduceMotion ? 0 : 320,
     })
-  }, [mapReady, selectedStopId, stops])
+  }, [mapReady, selectedStopId, stops, heatmap])
 
   return (
     <section className="relative min-h-[31rem] overflow-hidden border border-line bg-[#ebe8dc]" aria-labelledby="map-title">
@@ -263,7 +304,11 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
           <h2 id="map-title" className="mt-1 text-base font-extrabold tracking-[-0.02em]">
             Thermal exposure + stop candidates
           </h2>
-          <p className="mt-1 text-xs leading-5 text-muted-ink">Stylized geometry from deterministic fixture data.</p>
+          <p className="mt-1 text-xs leading-5 text-muted-ink">
+            {heatmap?.features.length
+              ? `${heatmap.features.length} FortyGuard heat polygons · ${modeLabel(runtimeMode ?? 'DEMO_FIXTURE')}`
+              : 'Stop-level heat until the heatmap layer arrives.'}
+          </p>
         </div>
         <a href="#stops-table" className="pointer-events-auto app-link inline-flex min-h-11 items-center gap-2 bg-panel/95 px-3 text-xs shadow-sm">
           <Keyboard className="size-4" aria-hidden="true" /> Use table equivalent
@@ -291,7 +336,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect }: CorridorMapProp
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full border-2 border-ink bg-panel" /> Recommended</span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full border border-ink bg-sun" /> Candidate</span>
         <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-[#909991]" /> Existing shelter</span>
-        <span className="ml-auto">Heat color = fixture exceedance hours</span>
+        <span className="ml-auto">Heat color = exceedance hours</span>
       </div>
     </section>
   )

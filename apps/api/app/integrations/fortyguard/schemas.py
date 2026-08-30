@@ -150,15 +150,25 @@ def build_heatmap_request(
 # --- response ----------------------------------------------------------------
 
 
-def _candidate_scopes(payload: Any) -> list[dict[str, Any]]:
-    """The payload itself plus one level of common envelope objects."""
+def _candidate_scopes(payload: Any, max_depth: int = 4) -> list[dict[str, Any]]:
+    """The payload itself plus nested common envelope objects."""
     if not isinstance(payload, dict):
         return []
-    scopes = [payload]
-    for key in _ENVELOPE_KEYS:
-        nested = payload.get(key)
-        if isinstance(nested, dict):
-            scopes.append(nested)
+    scopes: list[dict[str, Any]] = []
+    queue: list[tuple[dict[str, Any], int]] = [(payload, 0)]
+    seen_ids: set[int] = set()
+
+    while queue:
+        current, depth = queue.pop(0)
+        if id(current) in seen_ids:
+            continue
+        seen_ids.add(id(current))
+        scopes.append(current)
+        if depth < max_depth:
+            for key in _ENVELOPE_KEYS:
+                nested = current.get(key)
+                if isinstance(nested, dict):
+                    queue.append((nested, depth + 1))
     return scopes
 
 

@@ -1,15 +1,29 @@
 import { FileCheck2, MapPinned, Route, SunMedium } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { NavLink, Outlet } from 'react-router-dom'
 import { Badge } from './ui/badge'
 import { cn } from '../lib/utils'
-
-const navItems = [
-  { label: 'New scenario', to: '/scenarios/new', icon: Route },
-  { label: 'Corridor', to: '/scenarios/phoenix-central-fixture', icon: MapPinned },
-  { label: 'Portfolio', to: '/portfolios/portfolio-fixture-001', icon: FileCheck2 },
-]
+import { getHealth, modeLabel, modeTone, readSession } from '../lib/api'
 
 export function AppShell() {
+  const health = useQuery({ queryKey: ['health'], queryFn: getHealth, retry: 1 })
+  const session = typeof window === 'undefined' ? null : readSession()
+  const navItems = [
+    { label: 'New scenario', to: '/scenarios/new', icon: Route },
+    {
+      label: 'Corridor',
+      to: session ? `/scenarios/${session.scenarioId}?run=${session.runId}` : '/scenarios/phoenix-central-fixture',
+      icon: MapPinned,
+    },
+    {
+      label: 'Portfolio',
+      to: session ? `/portfolios/${session.runId}` : '/portfolios/portfolio-fixture-001',
+      icon: FileCheck2,
+    },
+  ]
+  const live = health.data?.liveProviderEnabled
+  const mode = live ? 'LIVE' : health.data ? 'DEMO_FIXTURE' : 'unknown'
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-line bg-canvas/95 backdrop-blur-sm">
@@ -46,8 +60,8 @@ export function AppShell() {
             ))}
           </nav>
 
-          <Badge tone="fixture" className="ml-auto sm:ml-0">
-            Demo fixture
+          <Badge tone={modeTone(mode)} className="ml-auto sm:ml-0">
+            {health.isError ? 'API unreachable' : live ? modeLabel('LIVE') : modeLabel('DEMO_FIXTURE')}
           </Badge>
         </div>
       </header>
@@ -61,7 +75,7 @@ export function AppShell() {
           <p>
             <strong className="text-ink">Planning aid only.</strong> Recommendations require qualified human review.
           </p>
-          <p className="font-mono uppercase tracking-[0.1em]">Fixture contract · no city-system writeback</p>
+          <p className="font-mono uppercase tracking-[0.1em]">No city-system writeback · human decision required</p>
         </div>
       </footer>
     </div>

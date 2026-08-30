@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # --- provider ---
     fortyguard_api_key: str = ""
     fortyguard_base_url: str = "https://api.fortyguard.com"
-    fortyguard_api_key_header: str = "x-api-key"
+    fortyguard_api_key_header: str = "api-key"  # FortyGuard dashboard / products sample
     fortyguard_api_key_prefix: str = ""
     live_provider_enabled: bool = False
 
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     max_live_jobs_per_day: int = 25
     max_live_jobs_per_client_per_day: int = 5
     max_aoi_area_km2: float = 25.0
-    allowed_date_min: dt.date = dt.date(2026, 6, 1)
+    allowed_date_min: dt.date = dt.date(2024, 6, 1)
     allowed_date_max: dt.date = dt.date(2026, 8, 31)
     max_request_body_bytes: int = 256_000
 

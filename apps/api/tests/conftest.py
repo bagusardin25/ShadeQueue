@@ -24,7 +24,7 @@ configure_event_loop()
 
 def _database_reachable() -> bool:
     async def probe() -> bool:
-        engine = create_async_engine(settings.database_url)
+        engine = create_async_engine(settings.database_url, connect_args={"connect_timeout": 1})
         try:
             async with engine.connect() as connection:
                 await connection.execute(text("SELECT 1"))

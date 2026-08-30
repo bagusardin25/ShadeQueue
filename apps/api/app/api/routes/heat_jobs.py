@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,8 @@ from app.api.deps import client_fingerprint
 from app.api.presenters import heat_job_response
 from app.api.schemas import HeatJobCreateRequest, HeatJobResponse
 from app.db.session import get_session
+from app.domain.errors import ConflictError
+from app.domain.runtime_mode import HeatJobState
 from app.services import heat_jobs as service
 
 router = APIRouter(prefix="/heat-jobs", tags=["heat-jobs"])
@@ -61,3 +64,19 @@ async def read_heat_job(
     job = await service.refresh_if_due(session, job)
     cells = await service.count_heat_cells(session, job.id)
     return heat_job_response(job, heat_cell_count=cells)
+
+
+@router.get("/{job_id}/heatmap")
+async def read_heatmap(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """GeoJSON heat surface for the map. Empty until the job has completed."""
+    job = await service.get_heat_job(session, job_id)
+    job = await service.refresh_if_due(session, job)
+    if job.state != HeatJobState.COMPLETED:
+        raise ConflictError(
+            "The heat surface is not available until the job has completed.",
+            detail={"state": job.state},
+        )
+    return await service.heatmap_geojson(session, job.id)
