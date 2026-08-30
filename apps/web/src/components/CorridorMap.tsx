@@ -118,13 +118,11 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
         basemap: {
           type: 'raster',
           tiles: [
-            'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-            'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-            'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           ],
           tileSize: 256,
-          attribution: '© OpenStreetMap © CARTO',
-          maxzoom: 20,
+          attribution: '© OpenStreetMap contributors · FortyGuard heat surface',
+          maxzoom: 19,
         },
         heatPolygons: { type: 'geojson', data: emptyHeat },
         stops: { type: 'geojson', data: stopCollection([], '') },
@@ -137,7 +135,7 @@ export function CorridorMap({ stops, selectedStopId, onSelect, heatmap, runtimeM
           source: 'heatPolygons',
           paint: {
             'fill-color': heatFillColor(range.min, range.max) as never,
-            'fill-opacity': 0.58,
+            'fill-opacity': 0.7,
           },
         },
         {
