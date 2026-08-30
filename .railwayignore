@@ -11,6 +11,8 @@ node_modules/
 **/.pytest_cache/
 **/.ruff_cache/
 **/dist/
+!apps/web/dist/
+!apps/web/dist/**
 .ui-ux-evidence/
 .vercel/
 coverage/

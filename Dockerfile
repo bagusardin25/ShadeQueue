@@ -1,17 +1,8 @@
-# Single-origin image: Vite SPA + FastAPI + fixture seed.
+# Single-origin image: prebuilt Vite SPA + FastAPI + fixture seed.
+# Frontend is built on the developer machine (`npm run build`) so the image
+# does not depend on Rolldown native bindings inside Docker.
 
-# --- stage 1: frontend -------------------------------------------------------
-FROM node:22-bookworm-slim AS web
-
-WORKDIR /src
-COPY package.json package-lock.json ./
-COPY apps/web/package.json apps/web/package.json
-RUN npm ci --include=optional
-COPY apps/web ./apps/web
-RUN npm run build
-
-
-# --- stage 2: python dependencies --------------------------------------------
+# --- stage 1: python dependencies --------------------------------------------
 FROM python:3.12-slim AS deps
 
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /bin/uv
@@ -48,7 +39,7 @@ COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 COPY fixtures ./fixtures
 COPY scripts ./scripts
-COPY --from=web /src/apps/web/dist ./apps/web/dist
+COPY apps/web/dist ./apps/web/dist
 
 ENV PYTHONPATH=/app/apps/api
 
